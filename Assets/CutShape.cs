@@ -32,16 +32,21 @@ public class CutShape
 
     public bool IsInside(Triangle triangle)
     {
-        bool isInsideA = GetSide(triangle.vertexA.position);
-        bool isInsideB = GetSide(triangle.vertexB.position);
-        bool isInsideC = GetSide(triangle.vertexC.position);
-
-        bool isInside = isInsideA && isInsideB && isInsideC;
-
-        return isInside;
+        return IsPointInside(triangle.GetPointInTheMiddle());
     }
 
-    public bool GetSide(Vector2 point)
+    /// <summary>
+    /// Try get a plane that go through <paramref name="vertex"/>
+    /// </summary>
+    /// <param name="vertex"></param>
+    /// <returns></returns>
+    public bool TryGetPlanesThatCross(VertexData vertex, out List<LimitedPlane> result)
+    {
+        result = planes.FindAll(p => p.IsInsideThisPlane(vertex.position));
+        return result != null;
+    }
+
+    private bool IsPointInside(Vector2 point)
     {
         var planesToCheck = planes.Where(p => p.IsWithinRange(point));
         if (planesToCheck.Count() == 0)

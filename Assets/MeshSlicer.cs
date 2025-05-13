@@ -1,7 +1,9 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
+using UnityEngine.UIElements;
 
-internal class MeshSlicer
+internal static class MeshSlicer
 {
 
     public static Mesh[] CutMeshTo2(Mesh normalMesh, Vector3 cutNormal, float distance)
@@ -97,6 +99,9 @@ internal class MeshSlicer
                 outsideMesh.AddTriangle(triangle);
         }
 
+        FillTheInside(ref insideMesh, true, cut);
+        FillTheInside(ref outsideMesh, false, cut);
+
         return new[] { insideMesh.ToMesh(), outsideMesh.ToMesh()};
     }
     
@@ -160,4 +165,132 @@ internal class MeshSlicer
             mesh.AddTriangle(triangle);
         }
     }
+
+    private static void Organize(ref List<VertexData> vertices, Vector3 normal)
+    {
+        Vector3 centerPoint = Vector3.zero;
+
+        foreach (var vertex in vertices)
+        {
+            centerPoint += vertex.position;
+        }
+        centerPoint /= vertices.Count;
+
+        vertices = vertices.OrderBy(v => Vector3.SignedAngle(Vector3.forward, v.position - centerPoint, normal)).ToList();
+    }
+
+    private static void FillTheInside(ref VertexMesh mesh, bool isPositive, CutShape cut)
+    {
+        Dictionary<LimitedPlane, List<VertexData>> newVertices = new Dictionary<LimitedPlane, List<VertexData>>();
+        for (int i = 0; i < mesh.Vertices.Count; i++)
+        {
+            // check all vertices and assigne them with the plane which cut them
+            if (cut.TryGetPlanesThatCross(mesh.Vertices[i], out List<LimitedPlane> planes))
+            {
+
+                foreach (var plane in planes)
+                {
+                    // to ensure sure no null errors happen
+                    if (!newVertices.ContainsKey(plane))
+                        newVertices.Add(plane, new List<VertexData>());
+
+                    newVertices[plane].Add(mesh.Vertices[i]);
+                }
+            }
+        }
+
+        foreach (var pair in newVertices)
+        {
+            LimitedPlane plane = pair.Key;
+            List<VertexData> vertices = pair.Value;
+
+            Organize(ref vertices, plane.Plane.normal);
+
+            JoinPointsAlongPlane(ref mesh, isPositive, plane.Plane.normal, vertices);
+        }
+    }
+
+    #region Inside Filling
+    private static void JoinPointsAlongPlane(ref VertexMesh mesh, bool isPositive, Vector3 cutNormal, List<VertexData> pointsAlongPlane)
+    {
+
+        Vector3 centerPoint = Vector3.zero;
+
+        foreach (var vertex in pointsAlongPlane)
+        {
+            centerPoint += vertex.position;
+        }
+        centerPoint /= pointsAlongPlane.Count;
+
+        VertexData halfway = new VertexData(-1, centerPoint, cutNormal, pointsAlongPlane[0].uv);
+
+        for (int i = 0; i < pointsAlongPlane.Count; i++)
+        {
+            int nextindex = i + 1 < pointsAlongPlane.Count ? i + 1 : 0;
+            VertexData firstVertex = pointsAlongPlane[i];
+            VertexData secondVertex = pointsAlongPlane[nextindex];
+
+            Vector3 normal = ComputeNormal(halfway, secondVertex, firstVertex);
+
+            float dot = Vector3.Dot(normal, cutNormal);
+
+            if (dot > 0)
+            {
+                //used if calculated normal aligns with plane normal
+                if (isPositive)
+                    mesh.AddTriangle(firstVertex.CloneWithNormal(-cutNormal), secondVertex.CloneWithNormal(-cutNormal), halfway.CloneWithNormal(-cutNormal));
+                else
+                    mesh.AddTriangle(secondVertex.CloneWithNormal(cutNormal), firstVertex.CloneWithNormal(cutNormal), halfway.CloneWithNormal(cutNormal));
+            }
+            else
+            {
+                //used if calculated normal is opposite to plane normal
+                if (isPositive)
+                    mesh.AddTriangle(secondVertex.CloneWithNormal(-cutNormal), firstVertex.CloneWithNormal(-cutNormal), halfway.CloneWithNormal(-cutNormal));
+                else
+                    mesh.AddTriangle(firstVertex.CloneWithNormal(cutNormal), secondVertex.CloneWithNormal(cutNormal), halfway.CloneWithNormal(cutNormal));
+            }
+        }
+    }
+
+
+    private static Vector3 GetHalfwayPoint(List<VertexData> pointsAlongPlane)
+    {
+        if (pointsAlongPlane.Count > 0)
+        {
+            Vector3 firstPoint = pointsAlongPlane[0].position;
+            Vector3 furthestPoint = Vector3.zero;
+            float distance = 0f;
+
+            for (int index = 0; index < pointsAlongPlane.Count; index++)
+            {
+                Vector3 point = pointsAlongPlane[index].position;
+                float currentDistance = 0f;
+                currentDistance = Vector3.Distance(firstPoint, point);
+
+                if (currentDistance > distance)
+                {
+                    distance = currentDistance;
+                    furthestPoint = point;
+                }
+            }
+
+            return Vector3.Lerp(firstPoint, furthestPoint, 0.5f);
+        }
+        else
+        {
+            return Vector3.zero;
+        }
+    }
+
+    private static Vector3 ComputeNormal(VertexData a, VertexData b, VertexData c)
+    {
+        Vector3 sideL = b.position - a.position;
+        Vector3 sideR = c.position - a.position;
+
+        Vector3 normal = Vector3.Cross(sideL, sideR);
+
+        return normal.normalized;
+    }
+    #endregion
 }

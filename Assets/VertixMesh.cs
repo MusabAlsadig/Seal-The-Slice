@@ -8,8 +8,9 @@ public class VertexMesh
 {
     private List<VertexData> vertices = new List<VertexData>();
     private List<Triangle> triangles = new List<Triangle>();
-    public List<Triangle> Triangles => triangles;
 
+    public List<VertexData> Vertices => vertices;
+    public List<Triangle> Triangles => triangles;
     public VertexMesh() 
     {
         // nothing
@@ -124,7 +125,7 @@ public class VertexMesh
         return mesh;
     }
 
-    
+
     public void JoinPointsAlongPlane(ref VertexMesh positive, ref VertexMesh negative, Vector3 cutNormal, List<VertexData> pointsAlongPlane)
     {
 
@@ -232,5 +233,15 @@ public class Triangle
         this.vertexA = vertexA;
         this.vertexB = vertexB;
         this.vertexC = vertexC;
+    }
+
+    public Vector3 GetPointInTheMiddle()
+    {
+        return new Vector3
+        {
+            x = (vertexA.position.x + vertexB.position.x + vertexC.position.x) / 3,
+            y = (vertexA.position.y + vertexB.position.y + vertexC.position.y) / 3,
+            z = (vertexA.position.z + vertexB.position.z + vertexC.position.z) / 3,
+        };
     }
 }

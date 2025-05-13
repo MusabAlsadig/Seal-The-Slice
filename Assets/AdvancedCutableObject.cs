@@ -1,10 +1,6 @@
 ﻿using Sirenix.OdinInspector;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Unity.VisualScripting;
+using UnityEditor;
 using UnityEngine;
 
 public class AdvancedCutableObject : MonoBehaviour
@@ -12,7 +8,8 @@ public class AdvancedCutableObject : MonoBehaviour
     [SerializeField]
     private MeshFilter _meshFilter;
     [SerializeField]
-    private List<Vector2> points;
+    private List<Vector2> points = new List<Vector2>();
+
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.blue;
@@ -21,7 +18,7 @@ public class AdvancedCutableObject : MonoBehaviour
             int nextIndex = i + 1 < points.Count ? i + 1 : 0;
             Gizmos.DrawLine(points[i], points[nextIndex]);
         }
-
+        
         Gizmos.color = Color.green;
         for (int i = 0;i < points.Count; i++)
         {

@@ -10,6 +10,8 @@ public class LimitedPlane
 
     public Plane Plane => plane;
 
+    private const float ErrorTolirance = 0.0001f;
+
     public LimitedPlane(Vector2 a, Vector2 b)
     {
         pointA = a;
@@ -25,8 +27,8 @@ public class LimitedPlane
         Vector2 min = Vector2.Min(pointA, pointB);
         Vector2 max = Vector2.Max(pointA, pointB);
 
-        bool withinX = point.x - min.x > -0.0001f && point.x - max.x < 0.0001f;
-        bool withinY = point.y - min.y > -0.0001f && point.y - max.y < 0.0001f;
+        bool withinX = point.x - min.x > -ErrorTolirance && point.x - max.x < ErrorTolirance;
+        bool withinY = point.y - min.y > -ErrorTolirance && point.y - max.y < ErrorTolirance;
         return withinX && withinY;
     }
 
@@ -36,12 +38,17 @@ public class LimitedPlane
             throw new InvalidOperationException("don't check a plane for a point out side it's limit ");
 
 
-        return Vector3.Dot(plane.normal, point) + plane.distance + 0.0001f > 0;
+        return Vector3.Dot(plane.normal, point) + plane.distance + ErrorTolirance > 0;
     }
 
     public bool GetSide(Vector3 point)
     {
         return plane.GetSide(point);
+    }
+
+    public bool IsInsideThisPlane(Vector3 point)
+    {
+        return MathF.Abs(plane.GetDistanceToPoint(point)) <= ErrorTolirance;
     }
 
     private Vector2 PerpendicularCounterClockwise(Vector2 vector2)
