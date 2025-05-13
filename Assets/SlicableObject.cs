@@ -80,8 +80,7 @@ public class SlicableObject : MonoBehaviour
     [Button]
     private void SliceMesh()
     {
-        Undo.RecordObject(this, "Slice");
-        Mesh[] meshes = MeshSlicer.SliceMesh(_meshFilter.sharedMesh, _normal, _distance);
+        Mesh[] meshes = MeshSlicer.CutMeshTo2(_meshFilter.sharedMesh, _normal, _distance);
         for (int index = 0; index < meshes.Length; index++)
         {
             Mesh mesh = meshes[index];
@@ -89,6 +88,5 @@ public class SlicableObject : MonoBehaviour
             submesh.gameObject.transform.position += (2 * transform.right);
             submesh.GetComponent<MeshFilter>().sharedMesh = mesh;
         }
-        EditorUtility.SetDirty(this);
     }
 }

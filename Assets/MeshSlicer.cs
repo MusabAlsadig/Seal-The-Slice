@@ -4,7 +4,7 @@ using UnityEngine;
 internal class MeshSlicer
 {
 
-    public static Mesh[] SliceMesh(Mesh normalMesh, Vector3 cutNormal, float distance)
+    public static Mesh[] CutMeshTo2(Mesh normalMesh, Vector3 cutNormal, float distance)
     {
         Plane plane = new Plane(cutNormal, distance);
         cutNormal.Normalize();
@@ -13,12 +13,11 @@ internal class MeshSlicer
 
         VertexMesh mesh = new VertexMesh(normalMesh);
         List<VertexData> pointsAlongPlane = new List<VertexData>();
-        for (int i = 0; i < normalMesh.triangles.Length; i += 3)
+        foreach (var triangle in mesh.Triangles)
         {
-            VertexData vertexA = mesh.vertices[mesh.triangles[i]];
-            VertexData vertexB = mesh.vertices[mesh.triangles[i + 1]];
-            VertexData vertexC = mesh.vertices[mesh.triangles[i + 2]];
-
+            VertexData vertexA = triangle.vertexA;
+            VertexData vertexB = triangle.vertexB;
+            VertexData vertexC = triangle.vertexC;
             bool isABSameSide = plane.SameSide( vertexA.position, vertexB.position);
             bool isBCSameSide = plane.SameSide( vertexB.position, vertexC.position);
 
@@ -27,7 +26,7 @@ internal class MeshSlicer
             {
                 // all this tringle is in the same side
                 VertexMesh helper = plane.GetSide(vertexA.position) ? positiveMesh : negativeMesh;
-                helper.AddTringle(vertexA, vertexB, vertexC);
+                helper.AddTriangle(vertexA, vertexB, vertexC);
             }
             else
             {
@@ -44,27 +43,27 @@ internal class MeshSlicer
                     intersectionD = mesh.CreateIntersectionVertex(vertexA, vertexC, plane);
                     intersectionE = mesh.CreateIntersectionVertex(vertexB, vertexC, plane);
 
-                    helperA.AddTringle(vertexA, vertexB, intersectionE);
-                    helperA.AddTringle(vertexA, intersectionE, intersectionD);
-                    helperC.AddTringle(intersectionE, vertexC, intersectionD);
+                    helperA.AddTriangle(vertexA, vertexB, intersectionE);
+                    helperA.AddTriangle(vertexA, intersectionE, intersectionD);
+                    helperC.AddTriangle(intersectionE, vertexC, intersectionD);
                 }
                 else if (isBCSameSide)
                 {
                     intersectionD = mesh.CreateIntersectionVertex(vertexB, vertexA, plane);
                     intersectionE = mesh.CreateIntersectionVertex(vertexC, vertexA, plane);
 
-                    helperB.AddTringle(vertexB, vertexC, intersectionE);
-                    helperB.AddTringle(vertexB, intersectionE, intersectionD);
-                    helperA.AddTringle(intersectionE, vertexA, intersectionD);
+                    helperB.AddTriangle(vertexB, vertexC, intersectionE);
+                    helperB.AddTriangle(vertexB, intersectionE, intersectionD);
+                    helperA.AddTriangle(intersectionE, vertexA, intersectionD);
                 }
                 else
                 {
                     intersectionD = mesh.CreateIntersectionVertex(vertexA, vertexB, plane);
                     intersectionE = mesh.CreateIntersectionVertex(vertexC, vertexB, plane);
 
-                    helperA.AddTringle(vertexA, intersectionE, vertexC);
-                    helperA.AddTringle(intersectionD, intersectionE, vertexA);
-                    helperB.AddTringle(vertexB, intersectionE, intersectionD);
+                    helperA.AddTriangle(vertexA, intersectionE, vertexC);
+                    helperA.AddTriangle(intersectionD, intersectionE, vertexA);
+                    helperB.AddTriangle(vertexB, intersectionE, intersectionD);
                 }
 
 
@@ -80,6 +79,85 @@ internal class MeshSlicer
         return new[] { positiveMesh.ToMesh(), negativeMesh.ToMesh() };
     }
 
-    
 
+    public static Mesh[] SeperateByCut(VertexMesh mesh, CutShape cut)
+    {
+        foreach (var plane in cut.planes)
+        {
+            SliceMesh(ref mesh, plane);
+        }
+
+        VertexMesh insideMesh = new VertexMesh();
+        VertexMesh outsideMesh = new VertexMesh();
+        foreach (var triangle in mesh.Triangles)
+        {
+            if (cut.IsInside(triangle))
+                insideMesh.AddTriangle(triangle);
+            else
+                outsideMesh.AddTriangle(triangle);
+        }
+
+        return new[] { insideMesh.ToMesh(), outsideMesh.ToMesh(), mesh.ToMesh() };
+    }
+    
+    public static void SliceMesh(ref VertexMesh mesh, Plane plane)
+    {
+        List<Triangle> trianglesToRemove = new List<Triangle>();
+        List<Triangle> trianglesToAdd = new List<Triangle>();
+        foreach (var triangle in mesh.Triangles)
+        {
+            VertexData vertexA = triangle.vertexA;
+            VertexData vertexB = triangle.vertexB;
+            VertexData vertexC = triangle.vertexC;
+
+            bool isABSameSide = plane.SameSide(vertexA.position, vertexB.position);
+            bool isBCSameSide = plane.SameSide(vertexB.position, vertexC.position);
+
+            // this tringle is outside this plane, just leave it
+            if (isABSameSide && isBCSameSide)
+                continue;
+
+            // this tringle cross this plane, need to edit it
+            trianglesToRemove.Add(triangle);
+            VertexData intersectionD;
+            VertexData intersectionE;
+
+            if (isABSameSide)
+            {
+                intersectionD = mesh.CreateIntersectionVertex(vertexA, vertexC, plane);
+                intersectionE = mesh.CreateIntersectionVertex(vertexB, vertexC, plane);
+
+                trianglesToAdd.Add(new Triangle( vertexA, vertexB, intersectionE));
+                trianglesToAdd.Add(new Triangle(vertexA, intersectionE, intersectionD));
+                trianglesToAdd.Add(new Triangle(intersectionE, vertexC, intersectionD));
+            }
+            else if (isBCSameSide)
+            {
+                intersectionD = mesh.CreateIntersectionVertex(vertexB, vertexA, plane);
+                intersectionE = mesh.CreateIntersectionVertex(vertexC, vertexA, plane);
+
+                trianglesToAdd.Add(new Triangle(vertexB, vertexC, intersectionE));
+                trianglesToAdd.Add(new Triangle(vertexB, intersectionE, intersectionD));
+                trianglesToAdd.Add(new Triangle(intersectionE, vertexA, intersectionD));
+            }
+            else
+            {
+                intersectionD = mesh.CreateIntersectionVertex(vertexA, vertexB, plane);
+                intersectionE = mesh.CreateIntersectionVertex(vertexC, vertexB, plane);
+
+                trianglesToAdd.Add(new Triangle(vertexA, intersectionE, vertexC));
+                trianglesToAdd.Add(new Triangle(intersectionD, intersectionE, vertexA));
+                trianglesToAdd.Add(new Triangle(vertexB, intersectionE, intersectionD));
+            }
+        }
+
+        foreach (var triangle in trianglesToRemove)
+        {
+            mesh.RemoveTriangle(triangle);
+        }
+        foreach(var triangle in trianglesToAdd)
+        {
+            mesh.AddTriangle(triangle);
+        }
+    }
 }

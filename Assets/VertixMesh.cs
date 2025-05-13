@@ -6,8 +6,9 @@ using UnityEngine;
 
 public class VertexMesh
 {
-    public List<VertexData> vertices = new List<VertexData>();
-    public List<int> triangles = new List<int>();
+    private List<VertexData> vertices = new List<VertexData>();
+    private List<Triangle> triangles = new List<Triangle>();
+    public List<Triangle> Triangles => triangles;
 
     public VertexMesh() 
     {
@@ -21,23 +22,48 @@ public class VertexMesh
             vertices.Add(vertexData);
         }
 
-        triangles = mesh.triangles.ToList();
+        for (int i = 0; i < mesh.triangles.Length; i += 3)
+        {
+            VertexData vertexA = vertices[mesh.triangles[i]];
+            VertexData vertexB = vertices[mesh.triangles[i + 1]];
+            VertexData vertexC = vertices[mesh.triangles[i + 2]];
+            Triangle triangle = new Triangle(vertexA, vertexB, vertexC);
+
+            triangles.Add(triangle);
+        }
     }
 
-    public void AddTringle(VertexData a, VertexData b, VertexData c)
+    public void AddTriangle(VertexData a, VertexData b, VertexData c)
     {
-        if (!vertices.Contains(a)) vertices.Add(a);
-        if (!vertices.Contains(b)) vertices.Add(b);
-        if (!vertices.Contains(c)) vertices.Add(c);
-
-        int indexA = vertices.IndexOf(a);
-        int indexB = vertices.IndexOf(b);
-        int indexC = vertices.IndexOf(c);
-        triangles.Add(indexA);
-        triangles.Add(indexB);
-        triangles.Add(indexC);
+        AddTriangle(new Triangle(a, b, c));
     }
 
+    public void AddTriangle(Triangle triangle)
+    {
+
+        if (TryFind(triangle.vertexA, out VertexData vertexA))
+            triangle.vertexA = vertexA;
+        else
+            vertices.Add(triangle.vertexA);
+
+        if (TryFind(triangle.vertexB, out VertexData vertexB))
+            triangle.vertexB = vertexB;
+        else
+            vertices.Add(triangle.vertexB);
+
+        if (TryFind(triangle.vertexC, out VertexData vertexC))
+            triangle.vertexC = vertexC;
+        else
+            vertices.Add(triangle.vertexC);
+
+        triangles.Add(triangle);
+    }
+
+    public void RemoveTriangle(Triangle triangle)
+    {
+        triangles.Remove(triangle);
+    }
+    
 
     public VertexData CreateIntersectionVertex(VertexData vertexA, VertexData vertexB, Plane plane)
     {
@@ -47,17 +73,22 @@ public class VertexMesh
         Ray ray = new Ray(vertexA.position, vertexB.position - vertexA.position);
         plane.Raycast(ray, out float distance);
         Vector3 position = ray.GetPoint(distance);
-        Debug.Log(position);
 
         float distanceA = Vector3.Distance(vertexA.position, position);
         float distanceB = Vector3.Distance(vertexB.position, position);
         float t = distanceA / (distanceA + distanceB);
 
-        Vector2 uv = Vector2.Lerp(vertexA.position, vertexB.position, t);
+        Vector2 uv = Vector2.Lerp(vertexA.uv, vertexB.uv, t);
         Vector3 normal = Vector3.Lerp(vertexA.normal, vertexB.normal, t);
         VertexData vertexData = new VertexData(vertices.Count, position, normal, uv);
-        vertices.Add(vertexData);
-        return vertexData;
+
+        if (TryFind(vertexData, out VertexData oldVertex))
+            return oldVertex;
+        else
+        {
+            vertices.Add(vertexData);
+            return vertexData;
+        }
     }
 
     public Mesh ToMesh()
@@ -67,41 +98,33 @@ public class VertexMesh
         var positions = new Vector3[length];
         var normals = new Vector3[length];
         var uv = new Vector2[length];
+        var trianglesList = new List<int>();
 
         for (int i = 0; i < length; i++)
         {
             positions[i] = vertices[i].position;
             normals[i] = vertices[i].normal;
             uv[i] = vertices[i].uv;
+
+            // refreash indexes
+            vertices[i].index = i;
+        }
+        for (int i = 0; i < triangles.Count; i++)
+        {
+            trianglesList.Add(triangles[i].vertexA.index);
+            trianglesList.Add(triangles[i].vertexB.index);
+            trianglesList.Add(triangles[i].vertexC.index);
         }
 
         mesh.vertices = positions;
         mesh.normals = normals;
         mesh.uv = uv;
-        mesh.triangles = triangles.ToArray();
+        mesh.triangles = trianglesList.ToArray();
 
         return mesh;
     }
 
-    private bool PointIntersectsAPlane(Vector3 from, Vector3 to, Vector3 planeOrigin, Vector3 normal, out Vector3 result)
-    {
-        Vector3 translation = to - from;
-        float dot = Vector3.Dot(normal, translation);
-        //Check if lines are not perpendicular
-        if (Mathf.Abs(dot) > Single.Epsilon)
-        {
-            Vector3 fromOrigin = from - planeOrigin;
-            float fac = -Vector3.Dot(normal, fromOrigin) / dot;
-            translation *= fac;
-            result = from + translation;
-            return true;
-        }
-
-
-        result = Vector3.zero;
-        return false;
-    }
-
+    
     public void JoinPointsAlongPlane(ref VertexMesh positive, ref VertexMesh negative, Vector3 cutNormal, List<VertexData> pointsAlongPlane)
     {
 
@@ -119,14 +142,14 @@ public class VertexMesh
             if (dot > 0)
             {
                 //used if calculated normal aligns with plane normal                           
-                positive.AddTringle(firstVertex.CloneWithNormal(-cutNormal), secondVertex.CloneWithNormal(-cutNormal), halfway.CloneWithNormal(-cutNormal));
-                negative.AddTringle(secondVertex.CloneWithNormal(cutNormal), firstVertex.CloneWithNormal(cutNormal), halfway.CloneWithNormal(cutNormal));
+                positive.AddTriangle(firstVertex.CloneWithNormal(-cutNormal), secondVertex.CloneWithNormal(-cutNormal), halfway.CloneWithNormal(-cutNormal));
+                negative.AddTriangle(secondVertex.CloneWithNormal(cutNormal), firstVertex.CloneWithNormal(cutNormal), halfway.CloneWithNormal(cutNormal));
             }
             else
             {
                 //used if calculated normal is opposite to plane normal
-                negative.AddTringle(firstVertex.CloneWithNormal(cutNormal), secondVertex.CloneWithNormal(cutNormal), halfway.CloneWithNormal(cutNormal));
-                positive.AddTringle(secondVertex.CloneWithNormal(-cutNormal), firstVertex.CloneWithNormal(-cutNormal), halfway.CloneWithNormal(-cutNormal));
+                negative.AddTriangle(firstVertex.CloneWithNormal(cutNormal), secondVertex.CloneWithNormal(cutNormal), halfway.CloneWithNormal(cutNormal));
+                positive.AddTriangle(secondVertex.CloneWithNormal(-cutNormal), firstVertex.CloneWithNormal(-cutNormal), halfway.CloneWithNormal(-cutNormal));
             }
         }
     }
@@ -167,6 +190,13 @@ public class VertexMesh
 
         return normal.normalized;
     }
+
+    private bool TryFind(VertexData vertex, out VertexData result)
+    {
+        result = vertices.Find(v => v.position == vertex.position && v.normal == vertex.normal);
+
+        return result != null;
+    }
 }
 
 public class VertexData
@@ -188,5 +218,19 @@ public class VertexData
     {
         return new VertexData(index, position, newNormal, uv);
 
+    }
+}
+
+public class Triangle
+{
+    public VertexData vertexA;
+    public VertexData vertexB;
+    public VertexData vertexC;
+
+    public Triangle(VertexData vertexA, VertexData vertexB, VertexData vertexC)
+    {
+        this.vertexA = vertexA;
+        this.vertexB = vertexB;
+        this.vertexC = vertexC;
     }
 }
