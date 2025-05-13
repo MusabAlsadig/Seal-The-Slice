@@ -84,7 +84,7 @@ internal class MeshSlicer
     {
         foreach (var plane in cut.planes)
         {
-            SliceMesh(ref mesh, plane);
+            SliceMesh(ref mesh, plane.Plane);
         }
 
         VertexMesh insideMesh = new VertexMesh();
@@ -97,7 +97,7 @@ internal class MeshSlicer
                 outsideMesh.AddTriangle(triangle);
         }
 
-        return new[] { insideMesh.ToMesh(), outsideMesh.ToMesh(), mesh.ToMesh() };
+        return new[] { insideMesh.ToMesh(), outsideMesh.ToMesh()};
     }
     
     public static void SliceMesh(ref VertexMesh mesh, Plane plane)

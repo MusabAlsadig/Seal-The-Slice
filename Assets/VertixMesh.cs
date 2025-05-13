@@ -69,7 +69,7 @@ public class VertexMesh
     {
         // TODO : make a check when inserting a new vertix
         // to prevent both tringles of the same face of doing creating new vertix
-
+        
         Ray ray = new Ray(vertexA.position, vertexB.position - vertexA.position);
         plane.Raycast(ray, out float distance);
         Vector3 position = ray.GetPoint(distance);
