@@ -42,7 +42,7 @@ public class CutShape
     /// <returns></returns>
     public bool TryGetPlanesThatCross(VertexData vertex, out List<LimitedPlane> result)
     {
-        result = planes.FindAll(p => p.IsInsideThisPlane(vertex.position));
+        result = planes.FindAll(p => p.IsWithinRange(vertex.position) && p.IsInsideThisPlane(vertex.position));
         return result != null;
     }
 
