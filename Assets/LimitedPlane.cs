@@ -27,9 +27,8 @@ public class LimitedPlane
         Vector2 min = Vector2.Min(pointA, pointB);
         Vector2 max = Vector2.Max(pointA, pointB);
 
-        bool withinX = point.x - min.x > -ErrorTolirance && point.x - max.x < ErrorTolirance;
         bool withinY = point.y - min.y > -ErrorTolirance && point.y - max.y < ErrorTolirance;
-        return withinX && withinY;
+        return withinY;
     }
 
     public bool GetSideWithinLimits(Vector2 point)
