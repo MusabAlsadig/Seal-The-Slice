@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 public class VertexMesh
@@ -65,6 +62,63 @@ public class VertexMesh
         triangles.Remove(triangle);
     }
     
+    /// <summary>
+    /// move and rotate the mesh<br/>
+    /// remember that the cutting is based on world origin (0,0,0) on XY plane
+    /// </summary>
+    /// <param name="target"></param>
+    /// <param name="cutter"></param>
+    public void MoveAround(Transform target, Transform cutter)
+    {
+        Matrix4x4 targetMatrix = Matrix4x4.Rotate(target.rotation);
+        Matrix4x4 cutterMatrix = Matrix4x4.Rotate(cutter.rotation).inverse;
+
+
+        foreach (var vertex in vertices)
+        {
+            vertex.position = targetMatrix.MultiplyPoint(vertex.position);
+            vertex.normal = targetMatrix.MultiplyPoint(vertex.normal);
+
+            vertex.position += target.position;
+            vertex.position -= cutter.position;
+
+            vertex.position = cutterMatrix.MultiplyPoint(vertex.position);
+            vertex.normal = cutterMatrix.MultiplyPoint(vertex.normal);
+        }
+    }
+
+    /// <summary>
+    /// return the mesh back to it's origin<br/>
+    /// remember that the cutting is based on world origin (0,0,0) on XY plane
+    /// </summary>
+    /// <param name="target"></param>
+    /// <param name="cutter"></param>
+    public void ReturnNormal(Transform target, Transform cutter)
+    {
+        // same as "MoveAround" method, just on the other direction
+
+        Matrix4x4 targetMatrix = Matrix4x4.Rotate(target.rotation).inverse;
+        Matrix4x4 cutterMatrix = Matrix4x4.Rotate(cutter.rotation);
+
+
+        foreach (var vertex in vertices)
+        {
+            if (vertex.isOnCurrectPosition)
+                continue;
+
+
+            vertex.position = cutterMatrix.MultiplyPoint(vertex.position);
+            vertex.normal = cutterMatrix.MultiplyPoint(vertex.normal);
+
+            vertex.position -= target.position;
+            vertex.position += cutter.position;
+
+            vertex.position = targetMatrix.MultiplyPoint(vertex.position);
+            vertex.normal = targetMatrix.MultiplyPoint(vertex.normal).normalized;
+            
+            vertex.isOnCurrectPosition = true;
+        }
+    }
 
     public VertexData CreateIntersectionVertex(VertexData vertexA, VertexData vertexB, Plane plane)
     {
@@ -206,6 +260,8 @@ public class VertexData
     public Vector3 position;
     public Vector3 normal;
     public Vector2 uv;
+
+    public bool isOnCurrectPosition;
 
     public VertexData(int index, Vector3 position, Vector3 normal, Vector2 uv)
     {

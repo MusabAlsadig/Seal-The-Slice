@@ -82,7 +82,7 @@ internal static class MeshSlicer
     }
 
 
-    public static Mesh[] SeperateByCut(VertexMesh mesh, CutShape cut)
+    public static VertexMesh[] SeperateByCut(VertexMesh mesh, CutShape cut)
     {
         foreach (var plane in cut.planes)
         {
@@ -102,7 +102,7 @@ internal static class MeshSlicer
         FillTheInside(ref insideMesh, true, cut);
         FillTheInside(ref outsideMesh, false, cut);
 
-        return new[] { insideMesh.ToMesh(), outsideMesh.ToMesh()};
+        return new[] { insideMesh, outsideMesh };
     }
     
     public static void SliceMesh(ref VertexMesh mesh, Plane plane)

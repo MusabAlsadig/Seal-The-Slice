@@ -16,13 +16,13 @@ public class AdvancedCutableObject : MonoBehaviour
         for (int i = 0; i < points.Count; i++)
         {
             int nextIndex = i + 1 < points.Count ? i + 1 : 0;
-            Gizmos.DrawLine(points[i], points[nextIndex]);
+            Gizmos.DrawLine(transform.position + (Vector3)points[i], transform.position + (Vector3)points[nextIndex]);
         }
         
         Gizmos.color = Color.green;
         for (int i = 0;i < points.Count; i++)
         {
-            Gizmos.DrawSphere(points[i], 0.06f);
+            Gizmos.DrawSphere(transform.position + (Vector3)points[i], 0.06f);
         }
     }
     private void OnValidate()
@@ -33,11 +33,11 @@ public class AdvancedCutableObject : MonoBehaviour
     [Button]
     private void Cut()
     {
-        Mesh[] meshes = MeshSlicer.SeperateByCut(new VertexMesh(_meshFilter.sharedMesh), new CutShape(points));
+        VertexMesh[] meshes = MeshSlicer.SeperateByCut(new VertexMesh(_meshFilter.sharedMesh), new CutShape(points));
 
         for (int index = 0; index < meshes.Length; index++)
         {
-            Mesh mesh = meshes[index];
+            Mesh mesh = meshes[index].ToMesh();
             GameObject submesh = Instantiate(this.gameObject);
             submesh.gameObject.transform.position += (2 * transform.right);
             submesh.GetComponent<MeshFilter>().sharedMesh = mesh;
