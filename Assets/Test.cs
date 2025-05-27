@@ -5,6 +5,8 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 using Sirenix.OdinInspector;
+using Extentions;
+
 internal class Test : MonoBehaviour
 {
 
@@ -44,7 +46,8 @@ internal class Test : MonoBehaviour
             Vector3 nextPoint = target.vertices[nextIndex];
             Vector3 normal = target.normals[i];
 
-
+            point.Scale(Vector3.Scale(target_transform.lossyScale, transform.lossyScale.OneOver()));
+            nextPoint.Scale(Vector3.Scale(target_transform.lossyScale, transform.lossyScale.OneOver()));
 
             // translate with target matrix
             point = targetMatrix.MultiplyPoint(point);
@@ -63,6 +66,8 @@ internal class Test : MonoBehaviour
             point = cutterMatrix.MultiplyPoint(point);
             nextPoint = cutterMatrix.MultiplyPoint(nextPoint);
             normal = cutterMatrix.MultiplyPoint(normal);
+
+            
 
             // lines
             Gizmos.color = Color.yellow;
@@ -83,12 +88,14 @@ internal class Test : MonoBehaviour
             cutterMatrix = cutterMatrix.inverse;
             targetMatrix = targetMatrix.inverse;
 
+            
 
             // translate with cutter matrix
             point = cutterMatrix.MultiplyPoint(point);
             nextPoint = cutterMatrix.MultiplyPoint(nextPoint);
             normal = cutterMatrix.MultiplyPoint(normal);
 
+            
 
             // add the movement of target
             point -= target_transform.position;
@@ -102,6 +109,11 @@ internal class Test : MonoBehaviour
             point = targetMatrix.MultiplyPoint(point);
             nextPoint = targetMatrix.MultiplyPoint(nextPoint);
             normal = targetMatrix.MultiplyPoint(normal);
+
+            Vector3 inverse = Vector3.Scale(target_transform.lossyScale.OneOver(), transform.lossyScale);
+
+            point.Scale(inverse);
+            nextPoint.Scale(inverse);
 
             // lines
             Gizmos.color = Color.white;
@@ -117,9 +129,6 @@ internal class Test : MonoBehaviour
 
             cutterMatrix = cutterMatrix.inverse;
             targetMatrix = targetMatrix.inverse;
-
-
-
         }
 
 

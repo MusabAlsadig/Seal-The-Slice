@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using Assets;
+using Extentions;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class VertexMesh
@@ -70,20 +72,34 @@ public class VertexMesh
     /// <param name="cutter"></param>
     public void MoveAround(Transform target, Transform cutter)
     {
+        if (target.lossyScale.HaveZero())
+        {
+            Debug.LogError($"can't do a cut, since <color=blue>{target.name}</color> global scale have a 0", target);
+            return;
+        }    
+
+        if (cutter.lossyScale.HaveZero())
+        {
+            Debug.LogError($"can't do a cut, since <color=blue>{cutter.name}</color> global scale have a 0", cutter);
+            return;
+        }
+
         Matrix4x4 targetMatrix = Matrix4x4.Rotate(target.rotation);
         Matrix4x4 cutterMatrix = Matrix4x4.Rotate(cutter.rotation).inverse;
 
-
+        Vector3 offset = target.position - cutter.position;
+        Vector3 scale = Vector3.Scale(target.lossyScale, cutter.lossyScale.OneOver());
         foreach (var vertex in vertices)
         {
             vertex.position = targetMatrix.MultiplyPoint(vertex.position);
             vertex.normal = targetMatrix.MultiplyPoint(vertex.normal);
 
-            vertex.position += target.position;
-            vertex.position -= cutter.position;
+            vertex.position += offset;
 
             vertex.position = cutterMatrix.MultiplyPoint(vertex.position);
             vertex.normal = cutterMatrix.MultiplyPoint(vertex.normal);
+
+            vertex.position.Scale(scale);
         }
     }
 
@@ -100,22 +116,24 @@ public class VertexMesh
         Matrix4x4 targetMatrix = Matrix4x4.Rotate(target.rotation).inverse;
         Matrix4x4 cutterMatrix = Matrix4x4.Rotate(cutter.rotation);
 
-
+        Vector3 offsetBack = cutter.position - target.position;
+        Vector3 scale = Vector3.Scale(cutter.lossyScale, target.lossyScale.OneOver());
         foreach (var vertex in vertices)
         {
             if (vertex.isOnCurrectPosition)
                 continue;
 
-
+            vertex.position.Scale(scale);
             vertex.position = cutterMatrix.MultiplyPoint(vertex.position);
             vertex.normal = cutterMatrix.MultiplyPoint(vertex.normal);
 
-            vertex.position -= target.position;
-            vertex.position += cutter.position;
+            vertex.position += offsetBack;
 
             vertex.position = targetMatrix.MultiplyPoint(vertex.position);
             vertex.normal = targetMatrix.MultiplyPoint(vertex.normal).normalized;
+
             
+
             vertex.isOnCurrectPosition = true;
         }
     }
