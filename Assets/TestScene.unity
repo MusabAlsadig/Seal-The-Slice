@@ -719,8 +719,8 @@ Transform:
   m_GameObject: {fileID: 358291425}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -0.019, z: -2.317}
-  m_LocalScale: {x: 0.5, y: 2, z: 1}
+  m_LocalPosition: {x: -2.001, y: -0.019, z: -2.317}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 224238775}
@@ -738,9 +738,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   points:
-  - {x: 0.84, y: 0.73}
-  - {x: 0.15, y: 0.75}
-  - {x: 0.38, y: -0.19}
+  - {x: 0.56380534, y: 0.9801473}
+  - {x: 0.56193113, y: 0.6066678}
+  - {x: 0.95437145, y: 0.7856352}
+  - {x: 0.46247196, y: 1.117861}
+  - {x: 0.17179382, y: 0.6873578}
   defaultTarget: {fileID: 102843814}
 --- !u!81 &358291428
 AudioListener:

@@ -1,17 +1,31 @@
-﻿using System.Collections.Generic;
+﻿using Extentions;
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
+using static UnityEditor.Experimental.AssetDatabaseExperimental.AssetDatabaseCounters;
 
 [CustomEditor(typeof(Cutter))]
 public class CutterEditor : Editor
 {
+    bool isCorrectDirection;
     public override void OnInspectorGUI()
     {
         base.OnInspectorGUI();
+        Cutter cutter = target as Cutter;
 
         if (GUILayout.Button("Cut"))
         {
-            (target as Cutter).CutShapeInFront();
+            cutter.CutShapeInFront();
+        }
+
+        if (!isCorrectDirection)
+        {
+            if (GUILayout.Button("fix to counter-clockwise"))
+            {
+                cutter.ReversDirection();
+                OnSceneGUI();
+                SceneView.RepaintAll();
+            }
         }
     }
 
@@ -21,11 +35,11 @@ public class CutterEditor : Editor
 
         Handles.matrix = Matrix4x4.TRS(cutter.transform.position, cutter.transform.rotation, cutter.transform.lossyScale);
         Vector2 center = GetCenter(cutter.points);
-        bool isCorrectDirection = IsShapeDirectionCounterClockwise(cutter.points, center);
+        isCorrectDirection = IsShapeDirectionCounterClockwise(cutter.points, center);
 
         DrawPolygon(cutter, isCorrectDirection);
-        HandlePoints(cutter);
         HandleCenter(cutter, center);
+        HandlePoints(cutter);
     }
 
 
@@ -62,7 +76,7 @@ public class CutterEditor : Editor
 
     private void HandleCenter(Cutter cutter, Vector2 center)
     {
-        Handles.color = Color.white;
+        Handles.color = Color.blue;
         Vector2 newCenter = Handles.FreeMoveHandle(center, 0.08f, Vector3.zero, Handles.SphereHandleCap);
         Vector2 offset = newCenter - center;
 
@@ -93,29 +107,25 @@ public class CutterEditor : Editor
 
     private bool IsShapeDirectionCounterClockwise(List<Vector2> vectors, Vector2 center)
     {
-        var angles = vectors.ConvertAll(v => Vector2.SignedAngle(Vector2.right, v - center));
+        float area = CalculateArea(vectors);
 
-        float smallesAngle = int.MinValue;
-
-
-        int startIndex = angles.FindIndex(a => a >= 0);
-
-        for (int i = 0; i < angles.Count; i++)
-        {
-            int currentIndex = startIndex + i < angles.Count ? startIndex + i: 0;
-            float angle = angles[currentIndex];
-
-            // make all angles go from 0-360
-            if (angle < 0)
-                angle += 360;
-
-            if (smallesAngle > angle)
-                return false;
-
-            smallesAngle = angle;
-        }
-
-        return true;
+        return area > 0;
     }
 
+
+    private float CalculateArea(List<Vector2> vectors)
+    {
+        float area = 0;
+        for (int i = 0; i < vectors.Count; i++)
+        {
+            int nextIndex = i + 1 < vectors.Count ? i + 1 : 0;
+            Vector2 point = vectors[i];
+            Vector2 nextPoint = vectors[nextIndex];
+            area += point.x * nextPoint.y - nextPoint.x * point.y;
+        }
+
+        area /= 2;
+
+        return area;
+    }
 }
