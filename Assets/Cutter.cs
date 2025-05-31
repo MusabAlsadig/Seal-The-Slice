@@ -42,4 +42,11 @@ public class Cutter : MonoBehaviour
         }
     }
 
+
+    #region Utilites
+    public void ReversDirection()
+    {
+        points.Reverse();
+    }
+    #endregion
 }
