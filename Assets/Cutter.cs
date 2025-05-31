@@ -1,36 +1,17 @@
 ﻿using Sirenix.OdinInspector;
 using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
-using UnityEngine.XR;
 
 
 public class Cutter : MonoBehaviour
 {
-    [SerializeField]
-    private List<Vector2> points = new List<Vector2>();
-
+    public List<Vector2> points = new List<Vector2>();
     [SerializeField]
     private Transform defaultTarget;
 
-    private void OnDrawGizmosSelected()
-    {
-        Gizmos.matrix = Matrix4x4.TRS(transform.position, transform.rotation, transform.lossyScale);
-        Gizmos.color = Color.blue;
-        for (int i = 0; i < points.Count; i++)
-        {
-            int nextIndex = i + 1 < points.Count ? i + 1 : 0;
-            Gizmos.DrawLine((Vector3)points[i], (Vector3)points[nextIndex]);
-        }
 
-        Gizmos.color = Color.green;
-        for (int i = 0; i < points.Count; i++)
-        {
-            Gizmos.DrawSphere((Vector3)points[i], 0.06f);
-        }
-    }
-
-    [Button]
-    private void CutShapeInFront()
+    public void CutShapeInFront()
     {
         Transform target;
         if (!Physics.Raycast(transform.position, transform.forward, out RaycastHit hitInfo))
