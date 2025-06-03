@@ -1,17 +1,21 @@
-﻿using Extentions;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
-using static UnityEditor.Experimental.AssetDatabaseExperimental.AssetDatabaseCounters;
 
-[CustomEditor(typeof(Cutter))]
+[CustomEditor(typeof(Cutter), true)]
 public class CutterEditor : Editor
 {
     bool isCorrectDirection;
+
+    Cutter cutter;
+    private void OnEnable()
+    {
+        cutter = target as Cutter;
+    }
+
     public override void OnInspectorGUI()
     {
         base.OnInspectorGUI();
-        Cutter cutter = target as Cutter;
 
         if (GUILayout.Button("Cut"))
         {
@@ -31,8 +35,6 @@ public class CutterEditor : Editor
 
     private void OnSceneGUI()
     {
-        Cutter cutter = target as Cutter;
-
         Handles.matrix = Matrix4x4.TRS(cutter.transform.position, cutter.transform.rotation, cutter.transform.lossyScale);
         Vector2 center = GetCenter(cutter.points);
         isCorrectDirection = IsShapeDirectionCounterClockwise(cutter.points, center);

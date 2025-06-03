@@ -120,6 +120,7 @@ public class VertexMesh
         Vector3 scale = Vector3.Scale(cutter.lossyScale, target.lossyScale.OneOver());
         foreach (var vertex in vertices)
         {
+            // make sure to only move each vertex once
             if (vertex.isOnCurrectPosition)
                 continue;
 

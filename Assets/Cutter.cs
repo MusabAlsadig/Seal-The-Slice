@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
+using static UnityEngine.GraphicsBuffer;
 
 
 public class Cutter : MonoBehaviour
@@ -24,24 +25,19 @@ public class Cutter : MonoBehaviour
             Debug.Log(hitInfo.transform.name);
             target = hitInfo.transform;
         }
-        
-        VertexMesh vertexMesh = new VertexMesh(target.GetComponent<MeshFilter>().sharedMesh);
-        vertexMesh.MoveAround(target, transform);
-        VertexMesh[] meshes = MeshSlicer.SeperateByCut(vertexMesh, new CutShape(points));
 
-
-        for (int index = 0; index < meshes.Length; index++)
-        {
-            VertexMesh vm = meshes[index];
-            vm.ReturnNormal(target, transform);
-            Mesh mesh = vm.ToMesh();
-            GameObject submesh = Instantiate(target.gameObject);
-            submesh.transform.position += (2 * submesh.transform.right) + submesh.transform.forward * index;
-            mesh.RecalculateBounds();
-            submesh.GetComponent<MeshFilter>().sharedMesh = mesh;
-        }
+        Cut(target.GetComponent<AdvancedCutableObject>());
     }
 
+    protected void Cut(AdvancedCutableObject cuttableObject)
+    {
+        
+    }
+
+    public virtual CutShape GetShape()
+    {
+        return new CutShape(points);
+    }
 
     #region Utilites
     public void ReversDirection()

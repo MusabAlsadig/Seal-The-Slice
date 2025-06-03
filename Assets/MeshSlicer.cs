@@ -101,7 +101,7 @@ internal static class MeshSlicer
         FillTheInside(ref insideMesh, true, cut);
         FillTheInside(ref outsideMesh, false, cut);
 
-        return new[] { insideMesh, outsideMesh };
+        return new[] { outsideMesh, insideMesh };
     }
     
     public static void SliceMesh(ref VertexMesh mesh, Plane plane)

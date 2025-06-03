@@ -5,42 +5,64 @@ using UnityEngine;
 
 public class AdvancedCutableObject : MonoBehaviour
 {
-    [SerializeField]
-    private MeshFilter _meshFilter;
-    [SerializeField]
-    private List<Vector2> points = new List<Vector2>();
 
-    private void OnDrawGizmosSelected()
-    {
-        Gizmos.color = Color.blue;
-        for (int i = 0; i < points.Count; i++)
-        {
-            int nextIndex = i + 1 < points.Count ? i + 1 : 0;
-            Gizmos.DrawLine(transform.position + (Vector3)points[i], transform.position + (Vector3)points[nextIndex]);
-        }
-        
-        Gizmos.color = Color.green;
-        for (int i = 0;i < points.Count; i++)
-        {
-            Gizmos.DrawSphere(transform.position + (Vector3)points[i], 0.06f);
-        }
-    }
+    [SerializeField]
+    private MeshFilter meshFilter;
+
     private void OnValidate()
     {
-        _meshFilter = GetComponent<MeshFilter>();
+        meshFilter = GetComponent<MeshFilter>();
     }
 
-    [Button]
-    private void Cut()
+    public List<GameObject> CutWith(Cutter cutter)
     {
-        VertexMesh[] meshes = MeshSlicer.SeperateByCut(new VertexMesh(_meshFilter.sharedMesh), new CutShape(points));
 
-        for (int index = 0; index < meshes.Length; index++)
+        VertexMesh vertexMesh = new VertexMesh(meshFilter.sharedMesh);
+        vertexMesh.MoveAround(transform, cutter.transform);
+        VertexMesh[] meshes = MeshSlicer.SeperateByCut(vertexMesh, cutter.GetShape());
+
+        string undoLable = "Cut " + name;
+
+        List<GameObject> submeshObjects = new List<GameObject>();
+        for (int i = 0; i < meshes.Length; i++)
         {
-            Mesh mesh = meshes[index].ToMesh();
-            GameObject submesh = Instantiate(this.gameObject);
-            submesh.gameObject.transform.position += (2 * transform.right);
-            submesh.GetComponent<MeshFilter>().sharedMesh = mesh;
+            VertexMesh vm = meshes[i];
+            vm.ReturnNormal(transform, cutter.transform);
+            Mesh mesh = vm.ToMesh();
+            mesh.RecalculateBounds();
+
+            mesh.name = name + " cut " + i;
+            GameObject submeshObject = Instantiate(gameObject);
+            submeshObject.name = name + " inner " + i;
+            Undo.RegisterCreatedObjectUndo(submeshObject, undoLable);
+            submeshObject.GetComponent<MeshFilter>().sharedMesh = mesh;
+
+            submeshObjects.Add(submeshObject);
         }
+
+        foreach (var _submeshObject in submeshObjects)
+        {
+            _submeshObject.transform.SetParent(transform);
+            _submeshObject.transform.localPosition = Vector3.zero;
+        }
+
+        Undo.RecordObject(gameObject, undoLable);
+        name += " (sliced)";
+
+        if (Application.isPlaying)
+        {
+            Destroy(meshFilter);
+            Destroy(this);
+        }
+        else
+        {
+            DestroyImmediate(meshFilter);
+            DestroyImmediate(this);
+        }
+
+        return submeshObjects;
     }
+
+
+
 }
