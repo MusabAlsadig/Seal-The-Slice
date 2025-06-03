@@ -2,22 +2,22 @@
 using UnityEditor;
 using UnityEngine;
 
-[CustomEditor(typeof(Cutter), true)]
+[CustomEditor(typeof(CutterBase), true)]
 public class CutterEditor : Editor
 {
     private bool isCorrectDirection;
 
-    private Cutter cutter;
+    private CutterBase cutter;
     private void OnEnable()
     {
-        cutter = target as Cutter;
+        cutter = target as CutterBase;
     }
 
     public override void OnInspectorGUI()
     {
         base.OnInspectorGUI();
 
-        if (GUILayout.Button("Cut"))
+        if (GUILayout.Button("Test Cut forward"))
         {
             cutter.CutShapeInFront();
         }
@@ -57,7 +57,7 @@ public class CutterEditor : Editor
 
     #region Gizmos
 
-    private void HandlePoints(Cutter cutter)
+    private void HandlePoints(CutterBase cutter)
     {
         Handles.color = Color.white;
         for (int i = 0; i < cutter.points.Count; i++)
@@ -76,7 +76,7 @@ public class CutterEditor : Editor
         }
     }
 
-    private void HandleCenter(Cutter cutter, Vector2 center)
+    private void HandleCenter(CutterBase cutter, Vector2 center)
     {
         Handles.color = Color.blue;
         Vector2 newCenter = Handles.FreeMoveHandle(center, 0.08f, Vector3.zero, Handles.SphereHandleCap);
@@ -95,7 +95,7 @@ public class CutterEditor : Editor
         }
     }
 
-    private void DrawPolygon(Cutter cutter, bool isCorrect)
+    private void DrawPolygon(CutterBase cutter, bool isCorrect)
     {
         if (isCorrect)
             Handles.color = new Color(0, 1, 0, 0.5f);

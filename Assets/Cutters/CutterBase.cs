@@ -2,7 +2,7 @@
 using UnityEngine;
 
 
-public class Cutter : MonoBehaviour
+public class CutterBase : MonoBehaviour
 {
     public List<Vector2> points = new List<Vector2>();
     [SerializeField]
@@ -23,13 +23,9 @@ public class Cutter : MonoBehaviour
             target = hitInfo.transform;
         }
 
-        Cut(target.GetComponent<CuttableObject>());
+        target.GetComponent<CuttableObject>().CutWith(this);
     }
 
-    protected void Cut(CuttableObject cuttableObject)
-    {
-        
-    }
 
     public virtual CutShape GetShape()
     {

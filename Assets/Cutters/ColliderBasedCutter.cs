@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 
-public class ColliderBasedCutter : Cutter
+public class ColliderBasedCutter : CutterBase
 {
     private List<CuttableObject> objectsCurrentlyCutting = new List<CuttableObject>();
 

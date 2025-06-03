@@ -12,7 +12,7 @@ public class CuttableObject : MonoBehaviour
         meshFilter = GetComponent<MeshFilter>();
     }
 
-    public List<GameObject> CutWith(Cutter cutter)
+    public List<GameObject> CutWith(CutterBase cutter)
     {
 
         VertexMesh vertexMesh = new VertexMesh(meshFilter.sharedMesh);
@@ -54,8 +54,8 @@ public class CuttableObject : MonoBehaviour
         }
         else
         {
-            DestroyImmediate(meshFilter);
-            DestroyImmediate(this);
+            Undo.DestroyObjectImmediate(meshFilter);
+            Undo.DestroyObjectImmediate(this);
         }
 
         return submeshObjects;
