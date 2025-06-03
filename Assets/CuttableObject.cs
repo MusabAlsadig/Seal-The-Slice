@@ -1,11 +1,9 @@
-﻿using Sirenix.OdinInspector;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
-public class AdvancedCutableObject : MonoBehaviour
+public class CuttableObject : MonoBehaviour
 {
-
     [SerializeField]
     private MeshFilter meshFilter;
 

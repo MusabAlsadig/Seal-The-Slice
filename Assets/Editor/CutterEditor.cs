@@ -5,9 +5,9 @@ using UnityEngine;
 [CustomEditor(typeof(Cutter), true)]
 public class CutterEditor : Editor
 {
-    bool isCorrectDirection;
+    private bool isCorrectDirection;
 
-    Cutter cutter;
+    private Cutter cutter;
     private void OnEnable()
     {
         cutter = target as Cutter;

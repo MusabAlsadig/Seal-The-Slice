@@ -1,8 +1,5 @@
-﻿using Sirenix.OdinInspector;
-using System.Collections.Generic;
-using UnityEditor;
+﻿using System.Collections.Generic;
 using UnityEngine;
-using static UnityEngine.GraphicsBuffer;
 
 
 public class Cutter : MonoBehaviour
@@ -26,10 +23,10 @@ public class Cutter : MonoBehaviour
             target = hitInfo.transform;
         }
 
-        Cut(target.GetComponent<AdvancedCutableObject>());
+        Cut(target.GetComponent<CuttableObject>());
     }
 
-    protected void Cut(AdvancedCutableObject cuttableObject)
+    protected void Cut(CuttableObject cuttableObject)
     {
         
     }
