@@ -6,26 +6,32 @@ public class CutterBase : MonoBehaviour
 {
     public List<Vector2> points = new List<Vector2>();
     [SerializeField]
-    private Transform defaultTarget;
+    private CuttableObject defaultTarget;
 
 
     public void CutShapeInFront()
     {
-        Transform target;
-        if (!Physics.Raycast(transform.position, transform.forward, out RaycastHit hitInfo))
+        CuttableObject target;
+        if (Physics.Raycast(transform.position, transform.forward, out RaycastHit hitInfo) 
+            && hitInfo.transform.TryGetComponent(out target))
         {
-            Debug.Log("no object there");
-            target = defaultTarget;
+            Debug.Log("slicing " + target.name);
         }
         else
         {
-            Debug.Log(hitInfo.transform.name);
-            target = hitInfo.transform;
+            Debug.Log("no object there, will use default");
+            target = defaultTarget;
         }
 
-        target.GetComponent<CuttableObject>().CutWith(this);
+        Cut(target);
     }
 
+    public CutResult Cut(CuttableObject target)
+    {
+        CutResult cutResult = MeshSlicer.SeperateByCut(target, this);
+        target.AfterCutCleanup();
+        return cutResult;
+    }
 
     public virtual CutShape GetShape()
     {

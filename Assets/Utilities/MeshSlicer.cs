@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using UnityEditor;
 using UnityEngine;
 
 internal static class MeshSlicer
@@ -81,8 +82,12 @@ internal static class MeshSlicer
     }
 
 
-    public static VertexMesh[] SeperateByCut(VertexMesh mesh, CutShape cut)
+    public static CutResult SeperateByCut(CuttableObject cuttable, CutterBase cutter)
     {
+        VertexMesh mesh = new VertexMesh(cuttable.SharedMesh);
+        mesh.MoveAround(cuttable.transform, cutter.transform);
+        CutShape cut = cutter.GetShape();
+
         foreach (var plane in cut.planes)
         {
             SliceMesh(ref mesh, plane.Plane);
@@ -101,7 +106,37 @@ internal static class MeshSlicer
         FillTheInside(ref insideMesh, true, cut);
         FillTheInside(ref outsideMesh, false, cut);
 
-        return new[] { outsideMesh, insideMesh };
+        GameObject insideObject = CloneObject(cuttable.gameObject, cutter, insideMesh, "inside");
+        GameObject outsideObject = CloneObject(cuttable.gameObject, cutter, outsideMesh, "outside");
+
+        var result = new CutResult(insideObject, outsideObject);
+
+        // reparent to base object
+        foreach (var subobject in result)
+        {
+            subobject.transform.SetParent(cuttable.transform);
+        }
+
+        return result;
+    }
+
+    private static GameObject CloneObject(GameObject baseObject, CutterBase cutter,VertexMesh submesh, string name)
+    {
+
+        string undoLable = "Cut " + baseObject.name;
+
+
+        submesh.ReturnNormal(baseObject.transform, cutter.transform);
+        Mesh mesh = submesh.ToMesh();
+        mesh.RecalculateBounds();
+
+        mesh.name = baseObject.name + " cut ";
+        GameObject submeshObject = Object.Instantiate(baseObject);
+        submeshObject.name = $"{baseObject.name} {name}";
+        Undo.RegisterCreatedObjectUndo(submeshObject, undoLable);
+        submeshObject.GetComponent<MeshFilter>().sharedMesh = mesh;
+
+        return submeshObject;
     }
     
     public static void SliceMesh(ref VertexMesh mesh, Plane plane)

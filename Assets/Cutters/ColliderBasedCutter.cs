@@ -13,9 +13,9 @@ public class ColliderBasedCutter : CutterBase
                 return;
 
             objectsCurrentlyCutting.Add(cuttableObject);
-            var newObjects = cuttableObject.CutWith(this);
+            CutResult cutResult = Cut(cuttableObject);
 
-            foreach (var submeshObject in newObjects)
+            foreach (var submeshObject in cutResult)
             {
                 objectsCurrentlyCutting.Add(submeshObject.GetComponent<CuttableObject>());
             }
