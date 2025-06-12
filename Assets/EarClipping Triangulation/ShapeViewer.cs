@@ -5,7 +5,7 @@ public class ShapeViewer : MonoBehaviour
 {
     public CutShape outterShape;
 
-    public List<CutShape> innerShapes;
+    public List<CutShape> children;
 }
 
 

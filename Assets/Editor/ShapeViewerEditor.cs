@@ -16,7 +16,7 @@ public class ShapeViewerEditor : Editor
     {
         Handles.matrix = Matrix4x4.TRS(shapeViewer.transform.position, shapeViewer.transform.rotation, shapeViewer.transform.lossyScale);
 
-        var tempTriangles = EarClipper.FillWithHoles(shapeViewer.outterShape.points, shapeViewer.innerShapes);
+        var tempTriangles = EarClipper.FillWithHoles(shapeViewer.outterShape, shapeViewer.children);
 
         for (int i = 0; i < tempTriangles.Count; i++)
         {
@@ -34,7 +34,7 @@ public class ShapeViewerEditor : Editor
 
         HandlePoints(shapeViewer.outterShape.points, Color.white);
 
-        foreach (var shape in shapeViewer.innerShapes)
+        foreach (var shape in shapeViewer.children)
         {
             HandlePoints(shape.points, Color.yellow);
         }

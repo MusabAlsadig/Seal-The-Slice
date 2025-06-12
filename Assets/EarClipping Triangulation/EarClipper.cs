@@ -12,10 +12,10 @@ public static class EarClipper
 
     private static Dictionary<PointType, List<Point>> groups;
 
-
-    public static List<TempTriangle> FillWithHoles(List<Vector2> outterShape,  List<CutShape> holes)
+    
+    public static List<TempTriangle> FillWithHoles(CutShape outterShape,  List<CutShape> holes)
     {
-        Initialize(outterShape);
+        Initialize(outterShape.points);
 
 
         // order by X value from right to left
@@ -30,9 +30,8 @@ public static class EarClipper
         return TriangulatePolygon();
     }
 
-    public static List<TempTriangle> FillPoligon(List<Vector2> shape, List<Vector2> innerHole)
+    public static List<TempTriangle> FillPoligonWithOneHole(List<Vector2> shape, List<Vector2> innerHole)
     {
-        
         Initialize(shape);
 
         InsertHole(innerHole);
@@ -42,6 +41,7 @@ public static class EarClipper
         return TriangulatePolygon();
     }
 
+    #region Utilities
     private static void Initialize(List<Vector2> outterShape)
     {
         if (groups == null)
@@ -237,7 +237,6 @@ public static class EarClipper
         
     }
 
-
     private static PointType GetPointType(Point point)
     {
         float angle = point.GetAngle();
@@ -277,7 +276,6 @@ public static class EarClipper
         return true;
     }
 
-
     private static void UpdatePoint(Point vertex)
     {
         PointType newType = GetPointType(vertex);
@@ -289,12 +287,13 @@ public static class EarClipper
         vertex.pointType = newType;
     }
 
-
-
     private static float Sign(Vector2 p1, Vector2 p2, Vector2 p3)
     {
         return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
     }
+
+    private static bool IsPointInTriangle(Vector2 pt, Point vertex)
+        => IsPointInTriangle(pt, vertex.lastPoint.position, vertex.position, vertex.nextPoint.position);
 
     private static bool IsPointInTriangle(Vector2 pt, Vector2 triangle_1, Vector2 triangle_2, Vector2 triangle_3)
     {
@@ -311,10 +310,7 @@ public static class EarClipper
         return !(has_neg && has_pos);
     }
 
-
-    private static bool IsPointInTriangle(Vector2 pt, Point vertex)
-        => IsPointInTriangle(pt, vertex.lastPoint.position, vertex.position, vertex.nextPoint.position);
-
+#endregion
 
     public enum PointType
     {
