@@ -3,9 +3,9 @@ using UnityEngine;
 
 public class ShapeViewer : MonoBehaviour
 {
-    public CutShape outterShape;
+    public CutShape shape;
 
-    public List<CutShape> children;
+    public List<ShapeViewer> children;
 }
 
 

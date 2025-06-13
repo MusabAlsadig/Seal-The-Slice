@@ -12,18 +12,66 @@ public static class EarClipper
 
     private static Dictionary<PointType, List<Point>> groups;
 
-    
-    public static List<TempTriangle> FillWithHoles(CutShape outterShape,  List<CutShape> holes)
-    {
-        Initialize(outterShape.points);
 
+    /// <summary>
+    /// fill a polygon with children and grandchildren....etc
+    /// </summary>
+    /// <param name="rootShape"></param>
+    /// <returns></returns>
+    public static List<TempTriangle> FillPolygoneTree(ShapeViewer rootShape)
+    {
+        List<TempTriangle> fullTringles = new List<TempTriangle>();
+        Queue<ShapeViewer> queue = new Queue<ShapeViewer>();
+
+        queue.Enqueue(rootShape);
+        while (queue.Count > 0)
+        {
+            ShapeViewer outerNode = queue.Dequeue();
+
+            int numChildren = outerNode.children.Count;
+            if (numChildren == 0)
+            {
+                // this a simple polygon with no holes
+                fullTringles.AddRange(FillSimplePolygon(outerNode.shape.points));
+            }
+            else
+            {
+                // this polygon have holes
+                List<ShapeViewer> innerHoles = new List<ShapeViewer>();
+                for (int i = 0; i < numChildren; i++)
+                {
+                    ShapeViewer hole = outerNode.children[i];
+                    int numGrandchildren = hole.children.Count;
+                    innerHoles.Add(hole);
+                    for (int j = 0; j < numGrandchildren; j++)
+                    {
+                        // these are another shapes inside this hole,
+                        // save them to be review as seperate shapes
+                        queue.Enqueue(hole.children[j]);
+                    }
+                }
+
+                fullTringles.AddRange(FillWithHoles(outerNode, innerHoles));
+            }
+        }
+
+        return fullTringles;
+
+    }
+         
+    
+    public static List<TempTriangle> FillWithHoles(ShapeViewer outterShape,  List<ShapeViewer> holes)
+    {
+        Initialize(outterShape.shape.points);
+
+        
 
         // order by X value from right to left
-        holes = holes.OrderByDescending(shape => shape.points.OrderByDescending(p => p.x).Last().x).ToList();
+        holes = holes.OrderByDescending(shape => shape.shape.points.OrderByDescending(p => p.x).Last().x).ToList();
 
         foreach (var hole in holes)
         {
-            InsertHole(hole.points);
+            InsertHole(hole.shape.points);
             RefreshPolygon();
         }
 
@@ -38,6 +86,13 @@ public static class EarClipper
 
         RefreshPolygon();
 
+        return TriangulatePolygon();
+    }
+
+    public static List<TempTriangle> FillSimplePolygon(List<Vector2> shape)
+    {
+        Initialize(shape);
+        RefreshPolygon();
         return TriangulatePolygon();
     }
 
@@ -77,6 +132,9 @@ public static class EarClipper
 
             TempTriangle tempTriangle = new TempTriangle(ear);
             result.Add(tempTriangle);
+
+            if (polygon.Count == 3)
+                return result;
 
             ear.PrepareToRemove();
             earVertices.Remove(ear);
@@ -241,6 +299,7 @@ public static class EarClipper
     {
         float angle = point.GetAngle();
 
+
         // unity count angles > 180 as negative angles
         if (angle < 0)
         {
@@ -254,6 +313,7 @@ public static class EarClipper
                 return PointType.Convex;
         }
 
+        
     }
 
     private static bool IsEar(Point vertex)
@@ -326,16 +386,27 @@ public class Line
     private readonly float slop;
     private readonly float intercept;
 
+    /// <summary>
+    /// this is used only when the slop is infinity, and any point will have the same X in this line
+    /// </summary>
+    private float potintial_X;
+
     public Line (Vector2 point1, Vector2 point2)
     {
         slop = (point1.y - point2.y) / (point1.x - point2.x);
 
         intercept = point1.y - slop * point1.x;
+
+        potintial_X = point1.x;
     }
 
     public Vector2 GetPointAtY(float y)
     {
-        float x = (y - intercept) / slop;
+        float x;
+        if (float.IsInfinity(slop))
+            x = potintial_X;
+        else
+            x = (y - intercept) / slop;
 
         return new Vector2 (x, y);
     }
