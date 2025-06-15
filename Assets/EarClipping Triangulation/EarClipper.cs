@@ -177,6 +177,11 @@ public static class EarClipper
             currentPoint.nextPoint = nextPoint;
 
             currentPoint.polygon = polygon;
+
+            if (IsReflex(currentPoint.GetAngle()))
+            {
+                ChangeGroup(currentPoint, PointType.Reflex);
+            }
         }
 
 
@@ -185,8 +190,7 @@ public static class EarClipper
             Point currentPoint = polygon[i];
 
             PointType type = GetPointType(currentPoint);
-            currentPoint.pointType = type;
-            groups[type].Add(currentPoint);
+            ChangeGroup(currentPoint, type);
         }
 
     }
@@ -301,7 +305,7 @@ public static class EarClipper
 
 
         // unity count angles > 180 as negative angles
-        if (angle < 0)
+        if (IsReflex(angle))
         {
             return PointType.Reflex;
         }
@@ -316,9 +320,21 @@ public static class EarClipper
         
     }
 
+    private static void ChangeGroup(Point point, PointType newType)
+    {
+        groups[point.pointType].Remove(point);
+        groups[newType].Add(point);
+        point.pointType = newType;
+    }
+
+    private static bool IsReflex(float angle)
+    {
+        return angle < 0;
+    }
+
     private static bool IsEar(Point vertex)
     {
-        foreach (Point p in polygon)
+        foreach (Point p in reflexVertices)
         {
             // no need to check thoes three if they are inside themselves;
             if (p.position == vertex.position)
@@ -374,7 +390,6 @@ public static class EarClipper
 
     public enum PointType
     {
-        None, // just to make sure i assigned all of them
         Reflex,
         Convex,
         Ear

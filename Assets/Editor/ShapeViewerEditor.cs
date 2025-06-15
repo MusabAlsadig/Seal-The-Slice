@@ -29,9 +29,17 @@ public class ShapeViewerEditor : Editor
 
         HandlePoints(shapeViewer.shape.points, Color.white);
 
-        foreach (var shape in shapeViewer.children)
+        HandleChildren(shapeViewer);
+    }
+
+    private void HandleChildren(ShapeViewer polyTree)
+    {
+        foreach (var childTree in polyTree.children)
         {
-            HandlePoints(shape.shape.points, Color.yellow);
+            HandlePoints(childTree.shape.points, Color.yellow);
+
+            // repeat for children, then grandchildren ...etc
+            HandleChildren(childTree);
         }
     }
 
