@@ -16,23 +16,23 @@ public class ShapeViewerEditor : Editor
     {
         Handles.matrix = Matrix4x4.TRS(shapeViewer.transform.position, shapeViewer.transform.rotation, shapeViewer.transform.lossyScale);
 
-        var tempTriangles = EarClipper.FillPolygoneTree(shapeViewer);
+        var tempTriangles = EarClipper.FillPolygoneTree(shapeViewer.polyTree);
 
         for (int i = 0; i < tempTriangles.Count; i++)
         {
             Handles.color = new Color(.7f, .7f, .7f, .5f);
-            Handles.DrawAAConvexPolygon(tempTriangles[i].points);
+            Handles.DrawAAConvexPolygon(tempTriangles[i].ToArray());
         }
 
         
         
 
-        HandlePoints(shapeViewer.shape.points, Color.white);
+        HandlePoints(shapeViewer.polyTree.shape.points, Color.white);
 
-        HandleChildren(shapeViewer);
+        HandleChildren(shapeViewer.polyTree);
     }
 
-    private void HandleChildren(ShapeViewer polyTree)
+    private void HandleChildren(PolyTree polyTree)
     {
         foreach (var childTree in polyTree.children)
         {

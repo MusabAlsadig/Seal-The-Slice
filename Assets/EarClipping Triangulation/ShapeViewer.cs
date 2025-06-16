@@ -1,11 +1,8 @@
-﻿using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class ShapeViewer : MonoBehaviour
 {
-    public CutShape shape;
-
-    public List<ShapeViewer> children;
+    public PolyTree polyTree;
 }
 
 

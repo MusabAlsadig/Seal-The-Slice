@@ -327,4 +327,62 @@ internal static class MeshSlicer
         return normal.normalized;
     }
     #endregion
+
+
+    //public static CutResult SeperateByCut(CuttableObject cuttable, CutterBase cutter)
+    //{
+    //    VertexMesh mesh = new VertexMesh(cuttable.SharedMesh);
+    //    mesh.MoveAround(cuttable.transform, cutter.transform);
+    //    CutShape cut = cutter.GetShape();
+
+
+    //    ShapeViewer outterPolygon = new ShapeViewer();
+    //    outterPolygon.shape = new CutShape();
+
+
+    //    // remove tringles that cross the cut,
+    //    // or at least contain vertices closest to the cut
+    //    List<Triangle> removedTriangles = new List<Triangle>();
+    //    foreach (var triangle in mesh.Triangles)
+    //    {
+
+    //        if (cut.IsAroundTheShape(triangle))
+    //            continue;
+
+    //        removedTriangles.Add(triangle);
+    //        mesh.RemoveTriangle(triangle);
+    //    }
+
+    //    Triangle startTriangle = removedTriangles[removedTriangles.Count - 1];
+    //    VertexData startVertex = startTriangle.vertexA;
+
+    //    while (removedTriangles.Count > 0)
+    //    {
+    //        Triangle currentTriangle = startTriangle;
+    //        VertexData currentVertex = startVertex;
+
+
+    //        List<Vector2> verticesInCurrentPlane = new List<Vector2>();
+    //        do
+    //        {
+    //            // switch to another triangle if current vertex is shared
+    //            Triangle triangle = removedTriangles.Find(t => t.Containt(currentVertex));
+    //            if (triangle != null)
+    //            {
+    //                currentTriangle = triangle;
+    //                removedTriangles.Remove(triangle);
+    //            }
+
+    //            currentVertex = triangle.VertexAfter(currentVertex);
+    //            verticesInCurrentPlane.Add(currentVertex.position);
+
+    //        } while (startVertex != currentVertex);
+
+    //        ShapeViewer hole = new ShapeViewer();
+    //        hole.shape = new CutShape(verticesInCurrentPlane);
+    //        outterPolygon.children.Add(hole);
+
+    //    }
+
+    //}
 }

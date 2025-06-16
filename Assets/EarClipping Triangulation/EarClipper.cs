@@ -18,15 +18,15 @@ public static class EarClipper
     /// </summary>
     /// <param name="rootShape"></param>
     /// <returns></returns>
-    public static List<TempTriangle> FillPolygoneTree(ShapeViewer rootShape)
+    public static List<Triangle> FillPolygoneTree(PolyTree rootPolygon)
     {
-        List<TempTriangle> fullTringles = new List<TempTriangle>();
-        Queue<ShapeViewer> queue = new Queue<ShapeViewer>();
+        List<Triangle> fullTringles = new List<Triangle>();
+        Queue<PolyTree> queue = new Queue<PolyTree>();
 
-        queue.Enqueue(rootShape);
+        queue.Enqueue(rootPolygon);
         while (queue.Count > 0)
         {
-            ShapeViewer outerNode = queue.Dequeue();
+            PolyTree outerNode = queue.Dequeue();
 
             int numChildren = outerNode.children.Count;
             if (numChildren == 0)
@@ -37,10 +37,10 @@ public static class EarClipper
             else
             {
                 // this polygon have holes
-                List<ShapeViewer> innerHoles = new List<ShapeViewer>();
+                List<PolyTree> innerHoles = new List<PolyTree>();
                 for (int i = 0; i < numChildren; i++)
                 {
-                    ShapeViewer hole = outerNode.children[i];
+                    PolyTree hole = outerNode.children[i];
                     int numGrandchildren = hole.children.Count;
                     innerHoles.Add(hole);
                     for (int j = 0; j < numGrandchildren; j++)
@@ -60,9 +60,9 @@ public static class EarClipper
     }
          
     
-    public static List<TempTriangle> FillWithHoles(ShapeViewer outterShape,  List<ShapeViewer> holes)
+    public static List<Triangle> FillWithHoles(PolyTree outterPolygon,  List<PolyTree> holes)
     {
-        Initialize(outterShape.shape.points);
+        Initialize(outterPolygon.shape.points);
 
         
 
@@ -78,7 +78,7 @@ public static class EarClipper
         return TriangulatePolygon();
     }
 
-    public static List<TempTriangle> FillPoligonWithOneHole(List<Vector2> shape, List<Vector2> innerHole)
+    public static List<Triangle> FillPoligonWithOneHole(List<Vector2> shape, List<Vector2> innerHole)
     {
         Initialize(shape);
 
@@ -89,7 +89,7 @@ public static class EarClipper
         return TriangulatePolygon();
     }
 
-    public static List<TempTriangle> FillSimplePolygon(List<Vector2> shape)
+    public static List<Triangle> FillSimplePolygon(List<Vector2> shape)
     {
         Initialize(shape);
         RefreshPolygon();
@@ -112,9 +112,9 @@ public static class EarClipper
         RefreshPolygon();
     }
 
-    private static List<TempTriangle> TriangulatePolygon()
+    private static List<Triangle> TriangulatePolygon()
     {
-        List<TempTriangle> result = new List<TempTriangle>();
+        List<Triangle> result = new List<Triangle>();
 
         int saftyCounter = 0;
         while (polygon.Count >= 3)
@@ -130,8 +130,8 @@ public static class EarClipper
                 ear = null;
             }
 
-            TempTriangle tempTriangle = new TempTriangle(ear);
-            result.Add(tempTriangle);
+            Triangle Triangle = new Triangle(ear);
+            result.Add(Triangle);
 
             if (polygon.Count == 3)
                 return result;
@@ -205,16 +205,16 @@ public static class EarClipper
         Point closestVertex = null;
         foreach (var vertex in polygon)
         {
-            float sign = Sign(vertex.position, vertex.nextPoint.position, rightMostInnerPoint);
+            float sign = Sign(vertex.Position, vertex.nextPoint.Position, rightMostInnerPoint);
 
             // skip outter edges
             if (sign < 0)
                 continue;
 
-            if (rightMostInnerPoint.y > vertex.position.y &&
-                rightMostInnerPoint.y < vertex.nextPoint.position.y)
+            if (rightMostInnerPoint.y > vertex.Position.y &&
+                rightMostInnerPoint.y < vertex.nextPoint.Position.y)
             {
-                Line line = new Line(vertex.position, vertex.nextPoint.position);
+                Line line = new Line(vertex.Position, vertex.nextPoint.Position);
                 // shot a ray to the right and get intersection point in the line
                 Vector2 intersectionPoint = line.GetPointAtY(rightMostInnerPoint.y);
 
@@ -234,9 +234,9 @@ public static class EarClipper
         // intersection is a vertex, finish here
 
         Point outterVertexToConnectTo;
-        if (closesIntersection == closestVertex.position)
+        if (closesIntersection == closestVertex.Position)
             outterVertexToConnectTo = closestVertex;
-        else if (closesIntersection == closestVertex.nextPoint.position)
+        else if (closesIntersection == closestVertex.nextPoint.Position)
             outterVertexToConnectTo = closestVertex.nextPoint;
         else
         {
@@ -245,7 +245,7 @@ public static class EarClipper
 
             // select the vertex on the right from this edge
             Point rightMostOutterVertexWithinEdge; // also known as (P)
-            if (closestVertex.position.x > closestVertex.nextPoint.position.x)
+            if (closestVertex.Position.x > closestVertex.nextPoint.Position.x)
                 rightMostOutterVertexWithinEdge = closestVertex;
             else
                 rightMostOutterVertexWithinEdge = closestVertex.nextPoint;
@@ -255,9 +255,9 @@ public static class EarClipper
             Vector2 direction_MI = closesIntersection - rightMostInnerPoint;
             foreach (var reflex in reflexVertices)
             {
-                if (IsPointInTriangle(reflex.position, rightMostInnerPoint, closesIntersection, rightMostOutterVertexWithinEdge.position))
+                if (IsPointInTriangle(reflex.Position, rightMostInnerPoint, closesIntersection, rightMostOutterVertexWithinEdge.Position))
                 {
-                    Vector2 direction_MP = rightMostOutterVertexWithinEdge.position - rightMostInnerPoint;
+                    Vector2 direction_MP = rightMostOutterVertexWithinEdge.Position - rightMostInnerPoint;
                     float angle = Vector2.Angle(direction_MI, direction_MP);
 
                     if (angle < smallestAngle)
@@ -291,7 +291,7 @@ public static class EarClipper
         }
 
         innerPoints.Add(new Point(rightMostInnerPoint));
-        innerPoints.Add(new Point(outterVertexToConnectTo.position));
+        innerPoints.Add(new Point(outterVertexToConnectTo.Position));
         
         polygon.InsertRange(startIndexInPolygon, innerPoints);
 
@@ -337,15 +337,15 @@ public static class EarClipper
         foreach (Point p in reflexVertices)
         {
             // no need to check thoes three if they are inside themselves;
-            if (p.position == vertex.position)
+            if (p.Position == vertex.Position)
                 continue;
-            if (p.position == vertex.lastPoint.position)
+            if (p.Position == vertex.lastPoint.Position)
                 continue;
-            if (p.position == vertex.nextPoint.position)
+            if (p.Position == vertex.nextPoint.Position)
                 continue;
 
             // an ear can't have a point inside it's tringle
-            if (IsPointInTriangle(p.position, vertex))
+            if (IsPointInTriangle(p.Position, vertex))
                 return false;
         }
 
@@ -369,7 +369,7 @@ public static class EarClipper
     }
 
     private static bool IsPointInTriangle(Vector2 pt, Point vertex)
-        => IsPointInTriangle(pt, vertex.lastPoint.position, vertex.position, vertex.nextPoint.position);
+        => IsPointInTriangle(pt, vertex.lastPoint.Position, vertex.Position, vertex.nextPoint.Position);
 
     private static bool IsPointInTriangle(Vector2 pt, Vector2 triangle_1, Vector2 triangle_2, Vector2 triangle_3)
     {

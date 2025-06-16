@@ -1,5 +1,6 @@
 ﻿using Extentions;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class VertexMesh
@@ -309,6 +310,65 @@ public class Triangle
         this.vertexC = vertexC;
     }
 
+    public Triangle (Point point)
+    {
+        vertexA = point.lastPoint.vertex;
+        vertexB = point.vertex;
+        vertexC = point.nextPoint.vertex;
+    }
+
+    public VertexData this[int i]
+    {
+        get
+        {
+            switch (i)
+            {
+                case 0: return vertexA;
+                case 1: return vertexB;
+                case 2: return vertexC;
+                default: return null;
+            }
+        }
+
+        set
+        {
+            switch (i)
+            {
+                case 0: vertexA = value; break;
+                case 1: vertexB = value; break;
+                case 2: vertexC = value; break;
+                default: return;
+            }
+        }
+    }
+
+    public bool Containt(VertexData vertexData)
+    {
+        for (int i = 0; i < 3; i++)
+        {
+            if (this[i] == vertexData)
+            {
+                return true;
+            }
+
+        }
+
+        // Vertex isn't part from this triangle
+        return false;
+    }
+
+    public VertexData VertexAfter(VertexData vertex)
+    {
+        if (vertex == vertexA)
+            return vertexB;
+        else if (vertex == vertexB)
+            return vertexC;
+        else if (vertex == vertexC)
+            return vertexA;
+        else
+            return null;
+    }
+
     public Vector3 GetPointInTheMiddle()
     {
         return new Vector3
@@ -316,6 +376,16 @@ public class Triangle
             x = (vertexA.position.x + vertexB.position.x + vertexC.position.x) / 3,
             y = (vertexA.position.y + vertexB.position.y + vertexC.position.y) / 3,
             z = (vertexA.position.z + vertexB.position.z + vertexC.position.z) / 3,
+        };
+    }
+
+    public Vector3[] ToArray()
+    {
+        return new[]
+        {
+            vertexA.position,
+            vertexB.position,
+            vertexC.position
         };
     }
 }
