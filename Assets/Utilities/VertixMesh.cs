@@ -1,6 +1,5 @@
 ﻿using Extentions;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
 
 public class VertexMesh
@@ -30,6 +29,14 @@ public class VertexMesh
             Triangle triangle = new Triangle(vertexA, vertexB, vertexC);
 
             triangles.Add(triangle);
+        }
+    }
+
+    public VertexMesh(List<Triangle> triangles)
+    {
+        foreach (var triangle in triangles)
+        {
+            AddTriangle(triangle);
         }
     }
 
@@ -282,6 +289,8 @@ public class VertexData
 
     public bool isOnCurrectPosition;
 
+    public List<Triangle> trianglesContainingIt = new List<Triangle>();
+
     public VertexData(int index, Vector3 position, Vector3 normal, Vector2 uv)
     {
         this.index = index;
@@ -308,6 +317,17 @@ public class Triangle
         this.vertexA = vertexA;
         this.vertexB = vertexB;
         this.vertexC = vertexC;
+
+        vertexA.trianglesContainingIt.Add(this);
+        vertexB.trianglesContainingIt.Add(this);
+        vertexC.trianglesContainingIt.Add(this);
+    }
+
+    ~Triangle()
+    {
+        vertexA.trianglesContainingIt.Remove(this);
+        vertexB.trianglesContainingIt.Remove(this);
+        vertexC.trianglesContainingIt.Remove(this);
     }
 
     public Triangle (Point point)

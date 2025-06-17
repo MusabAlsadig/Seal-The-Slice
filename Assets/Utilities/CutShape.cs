@@ -81,29 +81,39 @@ public class CutShape
 
     public bool IsAroundTheShape(Triangle triangle)
     {
-        bool IsSameSideX = IsSameSide(triangle, min_X, max_X);
-        bool IsSameSideY = IsSameSide(triangle, min_Y, max_Y);
+        bool IsSameSideX = IsSameSide_X(triangle);
+        bool IsSameSideY = IsSameSide_Y(triangle);
 
         return !IsSameSideX && !IsSameSideY;
     }                                              
-    private bool IsSameSide(Triangle triangle, float min, float max)
+    private bool IsSameSide_X(Triangle triangle)
     {
-        Side sideA = GetSide(triangle.vertexA, min, max);
-        Side sideB = GetSide(triangle.vertexB, min, max);
-        Side sideC = GetSide(triangle.vertexC, min, max);
+        Side sideA = GetSide(triangle.vertexA.position.x, min_X, max_Y);
+        Side sideB = GetSide(triangle.vertexB.position.x, min_X, max_Y);
+        Side sideC = GetSide(triangle.vertexC.position.x, min_X, max_Y);
+
+
+        return sideA == sideB && sideB == sideC;
+    }
+    
+    private bool IsSameSide_Y(Triangle triangle)
+    {
+        Side sideA = GetSide(triangle.vertexA.position.y, min_Y, max_Y);
+        Side sideB = GetSide(triangle.vertexB.position.y, min_Y, max_Y);
+        Side sideC = GetSide(triangle.vertexC.position.y, min_Y, max_Y);
 
 
         return sideA == sideB && sideB == sideC;
     }
 
 
-    private Side GetSide(VertexData vertex, float min, float max)
+    private Side GetSide(float value, float min, float max)
     {
 
         Side side;
-        if (vertex.position.x < min)
+        if (value < min)
             side = Side.Negative;
-        else if (vertex.position.x > max)
+        else if (value > max)
             side = Side.Positive;
         else
             side = Side.Inside;

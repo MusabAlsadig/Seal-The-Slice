@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using static Utilities;
 
 public static class EarClipper
 {
@@ -9,6 +10,7 @@ public static class EarClipper
     private static List<Point> convexVertices = new List<Point>();
     private static List<Point> earVertices = new List<Point>();
     private static List<Point> polygon;
+    private static PolygonDirection polygonDirection;
 
     private static Dictionary<PointType, List<Point>> groups;
 
@@ -22,7 +24,7 @@ public static class EarClipper
     {
         List<Triangle> fullTringles = new List<Triangle>();
         Queue<PolyTree> queue = new Queue<PolyTree>();
-
+        
         queue.Enqueue(rootPolygon);
         while (queue.Count > 0)
         {
@@ -69,8 +71,14 @@ public static class EarClipper
         // order by X value from right to left
         holes = holes.OrderByDescending(shape => shape.shape.points.OrderByDescending(p => p.x).Last().x).ToList();
 
+        
         foreach (var hole in holes)
         {
+            // reveese the direction of the hole if it's the same as the polygon
+            PolygonDirection holeDirection = GetPolygonDirection(hole.shape.points);
+            if (holeDirection == polygonDirection)
+                hole.shape.points.Reverse();
+
             InsertHole(hole.shape.points);
             RefreshPolygon();
         }
@@ -109,6 +117,8 @@ public static class EarClipper
         }
 
         polygon = outterShape.ConvertAll<Point>(v => new Point(v));
+        polygonDirection = GetPolygonDirection(outterShape);
+
         RefreshPolygon();
     }
 
@@ -197,7 +207,6 @@ public static class EarClipper
 
     private static void InsertHole(List<Vector2> inner)
     {
-
         Vector2 rightMostInnerPoint = inner.OrderBy(v => v.x).Last(); // also known as (M)
 
         float shortestDistance = float.PositiveInfinity;
@@ -207,26 +216,36 @@ public static class EarClipper
         {
             float sign = Sign(vertex.Position, vertex.nextPoint.Position, rightMostInnerPoint);
 
-            // skip outter edges
-            if (sign < 0)
+            // ignore edges facing outward
+            if (IsReflex(sign))
                 continue;
 
-            if (rightMostInnerPoint.y > vertex.Position.y &&
-                rightMostInnerPoint.y < vertex.nextPoint.Position.y)
+            if (polygonDirection == PolygonDirection.CounterClockwise)
             {
-                Line line = new Line(vertex.Position, vertex.nextPoint.Position);
-                // shot a ray to the right and get intersection point in the line
-                Vector2 intersectionPoint = line.GetPointAtY(rightMostInnerPoint.y);
+                // for counter-clockwise v[i] must be below, and v[i+1] must be above
+                if (rightMostInnerPoint.y < vertex.Position.y ||
+                    rightMostInnerPoint.y > vertex.nextPoint.Position.y)
+                    continue;
+            }
+            if (polygonDirection == PolygonDirection.Clockwise)
+            {
+                // for clockwise v[i] must be above, and v[i+1] must be below
+                if (rightMostInnerPoint.y > vertex.Position.y ||
+                    rightMostInnerPoint.y < vertex.nextPoint.Position.y)
+                    continue;
+            }
+            Line line = new Line(vertex.Position, vertex.nextPoint.Position);
+            // shot a ray to the right and get intersection point in the line
+            Vector2 intersectionPoint = line.GetPointAtY(rightMostInnerPoint.y);
 
-                float distance = intersectionPoint.x - rightMostInnerPoint.x;
-                if (distance < shortestDistance)
-                {
-                    // found a closer point
-                    closesIntersection = intersectionPoint;
-                    closestVertex = vertex;
-                    shortestDistance = distance;
+            float distance = intersectionPoint.x - rightMostInnerPoint.x;
+            if (distance < shortestDistance)
+            {
+                // found a closer point
+                closesIntersection = intersectionPoint;
+                closestVertex = vertex;
+                shortestDistance = distance;
 
-                }
             }
         }
 
@@ -329,7 +348,12 @@ public static class EarClipper
 
     private static bool IsReflex(float angle)
     {
-        return angle < 0;
+        if (polygonDirection == PolygonDirection.CounterClockwise)
+            return angle < 0;
+        else if (polygonDirection == PolygonDirection.Clockwise)
+            return angle > 0;
+        else
+            return angle == 0;
     }
 
     private static bool IsEar(Point vertex)

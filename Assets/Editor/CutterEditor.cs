@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
+using static Utilities;
 
 [CustomEditor(typeof(CutterBase), true)]
 public class CutterEditor : Editor
@@ -37,7 +38,7 @@ public class CutterEditor : Editor
     {
         Handles.matrix = Matrix4x4.TRS(cutter.transform.position, cutter.transform.rotation, cutter.transform.lossyScale);
         Vector2 center = GetCenter(cutter.points);
-        isCorrectDirection = IsShapeDirectionCounterClockwise(cutter.points, center);
+        isCorrectDirection = GetPolygonDirection(cutter.points) == PolygonDirection.CounterClockwise;
 
         DrawPolygon(cutter, isCorrectDirection);
         HandleCenter(cutter, center);
@@ -107,27 +108,8 @@ public class CutterEditor : Editor
 
     #endregion
 
-    private bool IsShapeDirectionCounterClockwise(List<Vector2> vectors, Vector2 center)
-    {
-        float area = CalculateArea(vectors);
-
-        return area > 0;
-    }
+    
 
 
-    private float CalculateArea(List<Vector2> vectors)
-    {
-        float area = 0;
-        for (int i = 0; i < vectors.Count; i++)
-        {
-            int nextIndex = i + 1 < vectors.Count ? i + 1 : 0;
-            Vector2 point = vectors[i];
-            Vector2 nextPoint = vectors[nextIndex];
-            area += point.x * nextPoint.y - nextPoint.x * point.y;
-        }
-
-        area /= 2;
-
-        return area;
-    }
+    
 }

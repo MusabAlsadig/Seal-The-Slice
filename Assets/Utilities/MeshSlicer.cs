@@ -82,43 +82,43 @@ internal static class MeshSlicer
     }
 
 
-    public static CutResult SeperateByCut(CuttableObject cuttable, CutterBase cutter)
-    {
-        VertexMesh mesh = new VertexMesh(cuttable.SharedMesh);
-        mesh.MoveAround(cuttable.transform, cutter.transform);
-        CutShape cut = cutter.GetShape();
+    //public static CutResult SeperateByCut(CuttableObject cuttable, CutterBase cutter)
+    //{
+    //    VertexMesh mesh = new VertexMesh(cuttable.SharedMesh);
+    //    mesh.MoveAround(cuttable.transform, cutter.transform);
+    //    CutShape cut = cutter.GetShape();
 
-        foreach (var plane in cut.planes)
-        {
-            SliceMesh(ref mesh, plane.Plane);
-        }
+    //    foreach (var plane in cut.planes)
+    //    {
+    //        SliceMesh(ref mesh, plane.Plane);
+    //    }
 
-        VertexMesh insideMesh = new VertexMesh();
-        VertexMesh outsideMesh = new VertexMesh();
-        foreach (var triangle in mesh.Triangles)
-        {
-            if (cut.IsInside(triangle))
-                insideMesh.AddTriangle(triangle);
-            else
-                outsideMesh.AddTriangle(triangle);
-        }
+    //    VertexMesh insideMesh = new VertexMesh();
+    //    VertexMesh outsideMesh = new VertexMesh();
+    //    foreach (var triangle in mesh.Triangles)
+    //    {
+    //        if (cut.IsInside(triangle))
+    //            insideMesh.AddTriangle(triangle);
+    //        else
+    //            outsideMesh.AddTriangle(triangle);
+    //    }
 
-        FillTheInside(ref insideMesh, true, cut);
-        FillTheInside(ref outsideMesh, false, cut);
+    //    FillTheInside(ref insideMesh, true, cut);
+    //    FillTheInside(ref outsideMesh, false, cut);
 
-        GameObject insideObject = CloneObject(cuttable.gameObject, cutter, insideMesh, "inside");
-        GameObject outsideObject = CloneObject(cuttable.gameObject, cutter, outsideMesh, "outside");
+    //    GameObject insideObject = CloneObject(cuttable.gameObject, cutter, insideMesh, "inside");
+    //    GameObject outsideObject = CloneObject(cuttable.gameObject, cutter, outsideMesh, "outside");
 
-        var result = new CutResult(insideObject, outsideObject);
+    //    var result = new CutResult(insideObject, outsideObject);
 
-        // reparent to base object
-        foreach (var subobject in result)
-        {
-            subobject.transform.SetParent(cuttable.transform);
-        }
+    //    // reparent to base object
+    //    foreach (var subobject in result)
+    //    {
+    //        subobject.transform.SetParent(cuttable.transform);
+    //    }
 
-        return result;
-    }
+    //    return result;
+    //}
 
     private static GameObject CloneObject(GameObject baseObject, CutterBase cutter,VertexMesh submesh, string name)
     {
@@ -329,60 +329,115 @@ internal static class MeshSlicer
     #endregion
 
 
-    //public static CutResult SeperateByCut(CuttableObject cuttable, CutterBase cutter)
-    //{
-    //    VertexMesh mesh = new VertexMesh(cuttable.SharedMesh);
-    //    mesh.MoveAround(cuttable.transform, cutter.transform);
-    //    CutShape cut = cutter.GetShape();
+    public static CutResult SeperateByCut(CuttableObject cuttable, CutterBase cutter)
+    {
+        VertexMesh mesh = new VertexMesh(cuttable.SharedMesh);
+        mesh.MoveAround(cuttable.transform, cutter.transform);
+        CutShape cut = cutter.GetShape();
+        PolyTree hole = new PolyTree();
+        hole.shape = cut;
 
 
-    //    ShapeViewer outterPolygon = new ShapeViewer();
-    //    outterPolygon.shape = new CutShape();
+        PolyTree outterPolygon = new PolyTree();
+        outterPolygon.shape = new CutShape();
+        outterPolygon.children.Add(hole);
+
+        // remove tringles that cross the cut,
+        // or at least contain vertices closest to the cut
+        List<Triangle> removedTriangles = new List<Triangle>();
+        foreach (var triangle in mesh.Triangles)
+        {
+
+            if (cut.IsAroundTheShape(triangle))
+                removedTriangles.Add(triangle);
 
 
-    //    // remove tringles that cross the cut,
-    //    // or at least contain vertices closest to the cut
-    //    List<Triangle> removedTriangles = new List<Triangle>();
-    //    foreach (var triangle in mesh.Triangles)
-    //    {
+        }
 
-    //        if (cut.IsAroundTheShape(triangle))
-    //            continue;
-
-    //        removedTriangles.Add(triangle);
-    //        mesh.RemoveTriangle(triangle);
-    //    }
-
-    //    Triangle startTriangle = removedTriangles[removedTriangles.Count - 1];
-    //    VertexData startVertex = startTriangle.vertexA;
-
-    //    while (removedTriangles.Count > 0)
-    //    {
-    //        Triangle currentTriangle = startTriangle;
-    //        VertexData currentVertex = startVertex;
+        foreach (var triangle in removedTriangles)
+        {
+            mesh.RemoveTriangle(triangle);
+        }
 
 
-    //        List<Vector2> verticesInCurrentPlane = new List<Vector2>();
-    //        do
-    //        {
-    //            // switch to another triangle if current vertex is shared
-    //            Triangle triangle = removedTriangles.Find(t => t.Containt(currentVertex));
-    //            if (triangle != null)
-    //            {
-    //                currentTriangle = triangle;
-    //                removedTriangles.Remove(triangle);
-    //            }
+        List<Triangle> newTriangles = new List<Triangle>();
+        int saftyCounter = 0;
+        while (removedTriangles.Count > 0)
+        {
 
-    //            currentVertex = triangle.VertexAfter(currentVertex);
-    //            verticesInCurrentPlane.Add(currentVertex.position);
+            Triangle startTriangle = null;
+            VertexData uniqueVertex = null;
+            List<VertexData> uniqueVertices = new List<VertexData>();
+            foreach (var triangle in removedTriangles)
+            {
+                for (int i = 0; i < 3; i++)
+                {
+                    if (triangle[i].trianglesContainingIt.Count == 1)
+                    {
+                        startTriangle = triangle;
+                        uniqueVertex = triangle[i];
+                        uniqueVertices.Add(uniqueVertex);
+                        break;
+                    }
+                }
 
-    //        } while (startVertex != currentVertex);
+            }
 
-    //        ShapeViewer hole = new ShapeViewer();
-    //        hole.shape = new CutShape(verticesInCurrentPlane);
-    //        outterPolygon.children.Add(hole);
+            List<Vector2> verticesInCurrentPlane = new List<Vector2>();
+            VertexData startVertex = uniqueVertices[0];
+            VertexData currentVertex = startVertex;
+            Triangle currentTriangle = startVertex.trianglesContainingIt[0];
+            do
+            {
+                // a vertex after a unique one
+                currentVertex = currentTriangle.VertexAfter(currentVertex);
+                verticesInCurrentPlane.Add(currentVertex.position);
+                
 
-    //    }
+                // unique vertex
+                currentVertex = uniqueVertices.Find(v => v.trianglesContainingIt[0] != currentTriangle && v.trianglesContainingIt[0].Containt(currentVertex));
+                verticesInCurrentPlane.Add(currentVertex.position);
+                uniqueVertices.Remove(currentVertex);
+                currentTriangle = currentVertex.trianglesContainingIt[0];
+                removedTriangles.Remove(currentTriangle);
 
-    //}
+            } while (currentVertex != startVertex);
+
+
+
+            PolyTree polyTree = new PolyTree();
+            polyTree.shape = new CutShape(verticesInCurrentPlane);
+            polyTree.children.Add(hole);
+            
+
+            newTriangles.AddRange(EarClipper.FillPolygoneTree(polyTree));
+        }
+
+        foreach (var triangle in newTriangles)
+        {
+            mesh.AddTriangle(triangle);
+        }
+
+        VertexMesh insideMesh = new VertexMesh(EarClipper.FillSimplePolygon(cut.points));
+        VertexMesh outsideMesh = mesh;
+
+        GameObject insideObject = CloneObject(cuttable.gameObject, cutter, insideMesh, "inside");
+        GameObject outsideObject = CloneObject(cuttable.gameObject, cutter, outsideMesh, "outside");
+
+        var result = new CutResult(insideObject, outsideObject);
+
+        return result;
+    }
+
+    private static void RevertHoles(PolyTree polyTreeHole)
+    {
+        polyTreeHole.shape.points.Reverse();
+        foreach (var polygon in polyTreeHole.children)
+        {
+            foreach (var hole in polygon.children)
+            {
+                RevertHoles(hole);
+            }
+        }
+    }
 }
