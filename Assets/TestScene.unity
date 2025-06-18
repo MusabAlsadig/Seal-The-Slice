@@ -742,9 +742,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   points:
-  - {x: -0.302979, y: -0.013494998}
-  - {x: -0.07318777, y: 0.309519}
-  - {x: 0.040739417, y: -0.2632604}
+  - {x: -0.3, y: 0}
+  - {x: 0, y: 0.3}
+  - {x: 0.3, y: 0}
   defaultTarget: {fileID: 102843810}
 --- !u!81 &358291428
 AudioListener:
@@ -2265,24 +2265,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   polyTree:
     shape:
-      points:
-      - {x: 10, y: 10}
-      - {x: -10, y: 10}
-      - {x: -10, y: -10}
-      - {x: 10, y: -10}
-    children:
-    - shape:
-        points:
-        - {x: -6.4394093, y: -6.6103992}
-        - {x: -6.4980974, y: 8.615435}
-        - {x: 7.8666687, y: 6.8743277}
-      children:
-      - shape:
-          points:
-          - {x: -0.35068953, y: 0.31958187}
-          - {x: 2, y: 2}
-          - {x: 0, y: 2}
-        children: []
+      direction: 0
 --- !u!4 &2145138788
 Transform:
   m_ObjectHideFlags: 0

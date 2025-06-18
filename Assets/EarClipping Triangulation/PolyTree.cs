@@ -3,6 +3,35 @@
 [System.Serializable]
 public class PolyTree
 {
-    public CutShape shape;
-    public List<PolyTree> children = new List<PolyTree>();
+    public Polygon shape;
+    private List<PolyTree> children = new List<PolyTree>();
+
+    public int ChildrenCount => children.Count;
+
+    public PolyTree Copy()
+    {
+        PolyTree copy = new PolyTree();
+        copy.shape = shape.Copy();
+        foreach (PolyTree child in children)
+        {
+            copy.children.Add(child.Copy());
+        }
+
+        return copy;
+    }
+
+    public void AddChild(PolyTree child)
+    {
+        if (child.shape.direction == shape.direction)
+            child.shape.Reverse();
+
+        children.Add(child);
+    }
+
+    public PolyTree GetChild(int index)
+    {
+        return children[index];
+    }
+
+    
 }

@@ -34,8 +34,9 @@ public class ShapeViewerEditor : Editor
 
     private void HandleChildren(PolyTree polyTree)
     {
-        foreach (var childTree in polyTree.children)
+        for (int i = 0; i < polyTree.ChildrenCount; i++)
         {
+            PolyTree childTree = polyTree.GetChild(i);
             HandlePoints(childTree.shape.points, Color.yellow);
 
             // repeat for children, then grandchildren ...etc
@@ -43,21 +44,21 @@ public class ShapeViewerEditor : Editor
         }
     }
 
-    private void HandlePoints(List<Vector2> shape, Color color)
+    private void HandlePoints(List<Point> shape, Color color)
     {
         Handles.color = color;
         for (int i = 0; i < shape.Count; i++)
         {
             int nextIndex = i + 1 < shape.Count ? i + 1 : 0;
-            Vector3 nextPoint = shape[nextIndex];
+            Vector3 nextPoint = shape[nextIndex].Position;
 
-            Vector2 changedPoint = Handles.FreeMoveHandle(shape[i], 0.08f, Vector3.zero, Handles.SphereHandleCap);
+            Vector2 changedPoint = Handles.FreeMoveHandle(shape[i].Position, 0.08f, Vector3.zero, Handles.SphereHandleCap);
 
-            if (changedPoint != shape[i])
+            if (changedPoint != (Vector2)shape[i].Position)
             {
                 Undo.RecordObject(shapeViewer, "");
                 Undo.SetCurrentGroupName($"Edit the cut shape of {shapeViewer}");
-                shape[i] = changedPoint;
+                shape[i].vertex.position = changedPoint;
             }
         }
     }

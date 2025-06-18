@@ -3,21 +3,22 @@ using UnityEngine;
 
 public class Point
 {
-    public Vector2 Position => vertex.position;
+    public Vector3 Position => vertex.position;
 
     public readonly VertexData vertex;
 
     public Point lastPoint;
     public Point nextPoint;
 
-    public List<Point> polygon;
     
     public EarClipper.PointType pointType;
 
-    public Point(Vector2 position)
+    public Point Copy()
     {
-        vertex = new VertexData(0, position, Vector3.up, Vector2.up);
+        Point copy = new Point(vertex.Copy());
+        return copy;
     }
+
 
     public Point (VertexData vertex)
     {

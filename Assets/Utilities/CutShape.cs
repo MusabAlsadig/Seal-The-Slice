@@ -11,10 +11,6 @@ public class CutShape
 
     public List<LimitedPlane> planes = new List<LimitedPlane>();
 
-    private float min_X;
-    private float max_X;
-    private float min_Y;
-    private float max_Y;
 
     public CutShape() { }
 
@@ -58,74 +54,9 @@ public class CutShape
     }
 
 
-    public void RecalculateBounds()
-    {
-        min_X = float.PositiveInfinity;
-        min_Y = float.PositiveInfinity;
-        max_X = float.NegativeInfinity;
-        max_Y = float.NegativeInfinity;
-
-        foreach (var point in points)
-        {
-            if (point.x < min_X)
-                min_X = point.x;
-            if (point.y < min_Y)
-                min_Y = point.y;
-            if (point.x > max_X)
-                max_X = point.x;
-            if (point.y > max_Y)
-                max_Y = point.y;
-        }
-    }
-
-
-    public bool IsAroundTheShape(Triangle triangle)
-    {
-        bool IsSameSideX = IsSameSide_X(triangle);
-        bool IsSameSideY = IsSameSide_Y(triangle);
-
-        return !IsSameSideX && !IsSameSideY;
-    }                                              
-    private bool IsSameSide_X(Triangle triangle)
-    {
-        Side sideA = GetSide(triangle.vertexA.position.x, min_X, max_Y);
-        Side sideB = GetSide(triangle.vertexB.position.x, min_X, max_Y);
-        Side sideC = GetSide(triangle.vertexC.position.x, min_X, max_Y);
-
-
-        return sideA == sideB && sideB == sideC;
-    }
     
-    private bool IsSameSide_Y(Triangle triangle)
-    {
-        Side sideA = GetSide(triangle.vertexA.position.y, min_Y, max_Y);
-        Side sideB = GetSide(triangle.vertexB.position.y, min_Y, max_Y);
-        Side sideC = GetSide(triangle.vertexC.position.y, min_Y, max_Y);
 
 
-        return sideA == sideB && sideB == sideC;
-    }
-
-
-    private Side GetSide(float value, float min, float max)
-    {
-
-        Side side;
-        if (value < min)
-            side = Side.Negative;
-        else if (value > max)
-            side = Side.Positive;
-        else
-            side = Side.Inside;
-
-        return side;
-    }
-
-    private enum Side
-    {
-        Positive,
-        Negative,
-        Inside,
-    }
+    
 
 }

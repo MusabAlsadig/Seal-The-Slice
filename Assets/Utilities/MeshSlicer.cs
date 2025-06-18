@@ -333,38 +333,38 @@ internal static class MeshSlicer
     {
         VertexMesh mesh = new VertexMesh(cuttable.SharedMesh);
         mesh.MoveAround(cuttable.transform, cutter.transform);
-        CutShape cut = cutter.GetShape();
+        Polygon cut = cutter.ToPolygon();
         PolyTree hole = new PolyTree();
         hole.shape = cut;
-
-
-        PolyTree outterPolygon = new PolyTree();
-        outterPolygon.shape = new CutShape();
-        outterPolygon.children.Add(hole);
 
         // remove tringles that cross the cut,
         // or at least contain vertices closest to the cut
         List<Triangle> removedTriangles = new List<Triangle>();
         foreach (var triangle in mesh.Triangles)
         {
-
             if (cut.IsAroundTheShape(triangle))
                 removedTriangles.Add(triangle);
-
-
         }
 
         foreach (var triangle in removedTriangles)
         {
+            // remove triangles from the mesh
             mesh.RemoveTriangle(triangle);
         }
 
 
+
         List<Triangle> newTriangles = new List<Triangle>();
-        int saftyCounter = 0;
+        List<Triangle> innerTriangles = new List<Triangle>();
+        
+
+        
         while (removedTriangles.Count > 0)
         {
+            // re-construct all polygons, one by one
 
+
+            // search for unique vertices
             Triangle startTriangle = null;
             VertexData uniqueVertex = null;
             List<VertexData> uniqueVertices = new List<VertexData>();
@@ -383,43 +383,60 @@ internal static class MeshSlicer
 
             }
 
-            List<Vector2> verticesInCurrentPlane = new List<Vector2>();
+            List<VertexData> verticesInCurrentPlane = new List<VertexData>();
             VertexData startVertex = uniqueVertices[0];
             VertexData currentVertex = startVertex;
             Triangle currentTriangle = startVertex.trianglesContainingIt[0];
+
+            List<Triangle> currentShapeTriangles = new List<Triangle>(); // will be used to raycast the cut forward onto the faces 
             do
             {
                 // a vertex after a unique one
                 currentVertex = currentTriangle.VertexAfter(currentVertex);
-                verticesInCurrentPlane.Add(currentVertex.position);
+                verticesInCurrentPlane.Add(currentVertex);
                 
 
                 // unique vertex
-                currentVertex = uniqueVertices.Find(v => v.trianglesContainingIt[0] != currentTriangle && v.trianglesContainingIt[0].Containt(currentVertex));
-                verticesInCurrentPlane.Add(currentVertex.position);
+                currentVertex = uniqueVertices.Find(v => v.trianglesContainingIt[0] != currentTriangle && v.trianglesContainingIt[0].Containt(currentVertex.position));
+                verticesInCurrentPlane.Add(currentVertex);
                 uniqueVertices.Remove(currentVertex);
                 currentTriangle = currentVertex.trianglesContainingIt[0];
                 removedTriangles.Remove(currentTriangle);
+                currentShapeTriangles.Add(currentTriangle);
 
             } while (currentVertex != startVertex);
 
 
+            PolyTree holeCopy = hole.Copy();
+            foreach (var triangle in currentShapeTriangles)
+            {
+                foreach (VertexData vertex in holeCopy.shape)
+                {
+                    // try to see both forward and backward, since the cut might be inside the mesh
+                    triangle.TryRaycastVertexIntoThisTriangle(vertex, Vector3.forward);
+                    triangle.TryRaycastVertexIntoThisTriangle(vertex, Vector3.back);
+                }
+            }
 
             PolyTree polyTree = new PolyTree();
-            polyTree.shape = new CutShape(verticesInCurrentPlane);
-            polyTree.children.Add(hole);
+            polyTree.shape = new Polygon(verticesInCurrentPlane);
+            polyTree.AddChild(holeCopy);
+
             
 
             newTriangles.AddRange(EarClipper.FillPolygoneTree(polyTree));
+            holeCopy.shape.Reverse();
+            innerTriangles.AddRange(EarClipper.FillPolygoneTree(holeCopy));
         }
 
+        VertexMesh outsideMesh = mesh;
         foreach (var triangle in newTriangles)
         {
             mesh.AddTriangle(triangle);
         }
 
-        VertexMesh insideMesh = new VertexMesh(EarClipper.FillSimplePolygon(cut.points));
-        VertexMesh outsideMesh = mesh;
+        VertexMesh insideMesh = new VertexMesh(innerTriangles);
+
 
         GameObject insideObject = CloneObject(cuttable.gameObject, cutter, insideMesh, "inside");
         GameObject outsideObject = CloneObject(cuttable.gameObject, cutter, outsideMesh, "outside");
@@ -429,15 +446,4 @@ internal static class MeshSlicer
         return result;
     }
 
-    private static void RevertHoles(PolyTree polyTreeHole)
-    {
-        polyTreeHole.shape.points.Reverse();
-        foreach (var polygon in polyTreeHole.children)
-        {
-            foreach (var hole in polygon.children)
-            {
-                RevertHoles(hole);
-            }
-        }
-    }
 }

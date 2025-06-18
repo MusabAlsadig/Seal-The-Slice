@@ -38,6 +38,12 @@ public class CutterBase : MonoBehaviour
         return new CutShape(points);
     }
 
+    public Polygon ToPolygon()
+    {
+        var vertices = points.ConvertAll(p => new VertexData(-1, p, Vector3.zero, Vector2.zero));
+        return new Polygon(vertices);
+    }
+
     #region Utilites
     public void ReversDirection()
     {

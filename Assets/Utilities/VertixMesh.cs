@@ -291,6 +291,11 @@ public class VertexData
 
     public List<Triangle> trianglesContainingIt = new List<Triangle>();
 
+    public VertexData Copy()
+    {
+        return new VertexData(index, position, normal, uv);
+    }
+
     public VertexData(int index, Vector3 position, Vector3 normal, Vector2 uv)
     {
         this.index = index;
@@ -335,6 +340,12 @@ public class Triangle
         vertexA = point.lastPoint.vertex;
         vertexB = point.vertex;
         vertexC = point.nextPoint.vertex;
+
+        for (int i = 0; i < 3; i++)
+        {
+            if (this[i].normal.y != 0)
+                Debug.Log("something wrong");
+        }
     }
 
     public VertexData this[int i]
@@ -376,6 +387,21 @@ public class Triangle
         // Vertex isn't part from this triangle
         return false;
     }
+    
+    public bool Containt(Vector3 position)
+    {
+        for (int i = 0; i < 3; i++)
+        {
+            if (this[i].position == position)
+            {
+                return true;
+            }
+
+        }
+
+        // Vertex isn't part from this triangle
+        return false;
+    }
 
     public VertexData VertexAfter(VertexData vertex)
     {
@@ -397,6 +423,38 @@ public class Triangle
             y = (vertexA.position.y + vertexB.position.y + vertexC.position.y) / 3,
             z = (vertexA.position.z + vertexB.position.z + vertexC.position.z) / 3,
         };
+    }
+
+    public bool TryRaycastVertexIntoThisTriangle(VertexData vertex, Vector3 direction)
+    {
+        Plane plane = new Plane(vertexA.position, vertexB.position, vertexC.position);
+
+        Ray ray = new Ray(vertex.position, direction);
+        if (!plane.Raycast(ray, out float distance))
+        {
+            return false;
+        }
+
+        vertex.position += (direction * distance);
+        EditUV(vertex);
+        return true;
+    }
+
+    private void EditUV(VertexData raycastedVertex)
+    {
+        float totalwight = 0;
+        for (int i = 0; i < 3; i++)
+        {
+            VertexData vertex = this[i];
+            float distance = Vector3.Distance(raycastedVertex.position, vertex.position);
+
+            raycastedVertex.uv += vertex.uv * distance;
+            raycastedVertex.normal += vertex.normal * distance;
+            totalwight += distance;
+        }
+
+        raycastedVertex.uv /= totalwight;
+        raycastedVertex.normal /= totalwight;
     }
 
     public Vector3[] ToArray()
