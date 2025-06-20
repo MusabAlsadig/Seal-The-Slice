@@ -7,6 +7,10 @@ public class CutterBase : MonoBehaviour
     public List<Vector2> points = new List<Vector2>();
     [SerializeField]
     private CuttableObject defaultTarget;
+    [SerializeField]
+    private Material materialForTheFiller;
+
+    public Material Material => materialForTheFiller;
 
 
     public void CutShapeInFront()

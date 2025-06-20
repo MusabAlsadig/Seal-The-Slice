@@ -6,82 +6,6 @@ using UnityEngine;
 internal static class MeshSlicer
 {
 
-    public static Mesh[] CutMeshTo2(Mesh normalMesh, Vector3 cutNormal, float distance)
-    {
-        Plane plane = new Plane(cutNormal, distance);
-        cutNormal.Normalize();
-        VertexMesh positiveMesh = new VertexMesh();
-        VertexMesh negativeMesh = new VertexMesh();
-
-        VertexMesh mesh = new VertexMesh(normalMesh);
-        List<VertexData> pointsAlongPlane = new List<VertexData>();
-        foreach (var triangle in mesh.Triangles)
-        {
-            VertexData vertexA = triangle.vertexA;
-            VertexData vertexB = triangle.vertexB;
-            VertexData vertexC = triangle.vertexC;
-            bool isABSameSide = plane.SameSide( vertexA.position, vertexB.position);
-            bool isBCSameSide = plane.SameSide( vertexB.position, vertexC.position);
-
-
-            if (isABSameSide && isBCSameSide)
-            {
-                // all this tringle is in the same side
-                VertexMesh helper = plane.GetSide(vertexA.position) ? positiveMesh : negativeMesh;
-                helper.AddTriangle(vertexA, vertexB, vertexC);
-            }
-            else
-            {
-                //we have to find intersection between triangle and cutting plane 
-                VertexData intersectionD;
-                VertexData intersectionE;
-                //Determine appropirate helper for each triangle corner
-                VertexMesh helperA = plane.GetSide(vertexA.position) ? positiveMesh : negativeMesh;
-                VertexMesh helperB = plane.GetSide(vertexB.position) ? positiveMesh : negativeMesh;
-                VertexMesh helperC = plane.GetSide(vertexC.position) ? positiveMesh : negativeMesh;
-
-                if (isABSameSide)
-                {
-                    intersectionD = mesh.CreateIntersectionVertex(vertexA, vertexC, plane);
-                    intersectionE = mesh.CreateIntersectionVertex(vertexB, vertexC, plane);
-
-                    helperA.AddTriangle(vertexA, vertexB, intersectionE);
-                    helperA.AddTriangle(vertexA, intersectionE, intersectionD);
-                    helperC.AddTriangle(intersectionE, vertexC, intersectionD);
-                }
-                else if (isBCSameSide)
-                {
-                    intersectionD = mesh.CreateIntersectionVertex(vertexB, vertexA, plane);
-                    intersectionE = mesh.CreateIntersectionVertex(vertexC, vertexA, plane);
-
-                    helperB.AddTriangle(vertexB, vertexC, intersectionE);
-                    helperB.AddTriangle(vertexB, intersectionE, intersectionD);
-                    helperA.AddTriangle(intersectionE, vertexA, intersectionD);
-                }
-                else
-                {
-                    intersectionD = mesh.CreateIntersectionVertex(vertexA, vertexB, plane);
-                    intersectionE = mesh.CreateIntersectionVertex(vertexC, vertexB, plane);
-
-                    helperA.AddTriangle(vertexA, intersectionE, vertexC);
-                    helperA.AddTriangle(intersectionD, intersectionE, vertexA);
-                    helperB.AddTriangle(vertexB, intersectionE, intersectionD);
-                }
-
-
-                pointsAlongPlane.Add(intersectionD);
-                pointsAlongPlane.Add(intersectionE);
-            }
-
-        }
-
-        // fill the faces inside of the shape
-        mesh.JoinPointsAlongPlane(ref positiveMesh, ref negativeMesh, cutNormal, pointsAlongPlane);
-
-        return new[] { positiveMesh.ToMesh(), negativeMesh.ToMesh() };
-    }
-
-
     public static CutResult SeperateByCut(CuttableObject cuttable, CutterBase cutter)
     {
         VertexMesh mesh = new VertexMesh(cuttable.SharedMesh);
@@ -103,11 +27,25 @@ internal static class MeshSlicer
                 outsideMesh.AddTriangle(triangle);
         }
 
-        FillTheInside(ref insideMesh, true, cut);
-        FillTheInside(ref outsideMesh, false, cut);
+        VertexMesh insideMeshFill = new VertexMesh();
+        VertexMesh outsideMeshFill = new VertexMesh();
+        FillTheInside(insideMesh, true, cut, insideMeshFill);
+        FillTheInside(outsideMesh, false, cut, outsideMeshFill);
 
         GameObject insideObject = CloneObject(cuttable.gameObject, cutter, insideMesh, "inside");
         GameObject outsideObject = CloneObject(cuttable.gameObject, cutter, outsideMesh, "outside");
+
+        GameObject insideObjectFill = CloneObject(cuttable.gameObject, cutter, insideMeshFill, "inside fill");
+        GameObject outsideObjectFill = CloneObject(cuttable.gameObject, cutter, outsideMeshFill, "outside fill");
+
+        insideObjectFill.transform.SetParent(insideObject.transform);
+        outsideObjectFill.transform.SetParent(outsideObject.transform);
+
+        if (cutter.Material != null)
+        {
+            insideObjectFill.GetComponent<MeshRenderer>().material = cutter.Material;
+            outsideObjectFill.GetComponent<MeshRenderer>().material = cutter.Material;
+        }
 
         var result = new CutResult(insideObject, outsideObject);
 
@@ -213,7 +151,7 @@ internal static class MeshSlicer
         vertices = vertices.OrderBy(v => Vector3.SignedAngle(Vector3.forward, v.position - centerPoint, normal)).ToList();
     }
 
-    private static void FillTheInside(ref VertexMesh mesh, bool isPositive, CutShape cut)
+    private static void FillTheInside(VertexMesh mesh, bool isPositive, CutShape cut, VertexMesh otherMeshToPutInto = null)
     {
         Dictionary<LimitedPlane, List<VertexData>> newVertices = new Dictionary<LimitedPlane, List<VertexData>>();
         for (int i = 0; i < mesh.Vertices.Count; i++)
@@ -232,6 +170,9 @@ internal static class MeshSlicer
                 }
             }
         }
+
+        if (otherMeshToPutInto != null)
+            mesh = otherMeshToPutInto;
 
         foreach (var pair in newVertices)
         {
