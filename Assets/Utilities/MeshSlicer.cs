@@ -9,8 +9,9 @@ internal static class MeshSlicer
 
     public static CutResult SeperateByCut(CuttableObject cuttable, CutterBase cutter)
     {
+        MatrixTranslator matrixTranslator = new MatrixTranslator(cuttable.transform, cutter.transform);
         VertexMesh mesh = new VertexMesh(cuttable.SharedMesh);
-        mesh.MoveAround(cuttable.transform, cutter.transform);
+        matrixTranslator.MoveAround(mesh);
         CutShape cut = cutter.GetShape();
 
         foreach (var plane in cut.planes)
@@ -33,11 +34,17 @@ internal static class MeshSlicer
         FillTheInside(insideMesh, true, cut, insideMeshFill);
         FillTheInside(outsideMesh, false, cut, outsideMeshFill);
 
-        GameObject insideObject = CloneObject(cuttable.gameObject, cutter, insideMesh, "inside");
-        GameObject outsideObject = CloneObject(cuttable.gameObject, cutter, outsideMesh, "outside");
+        // TODO : fix the calculation of uv based on bounds,
+        //Bounds translatedBounds = matrixTranslator.MoveAround(cuttable.OriginalBounds);
 
-        GameObject insideObjectFill = CloneObject(cuttable.gameObject, cutter, insideMeshFill, "inside fill");
-        GameObject outsideObjectFill = CloneObject(cuttable.gameObject, cutter, outsideMeshFill, "outside fill");
+        FixMeshUVs(insideMeshFill);
+        FixMeshUVs(outsideMeshFill);
+
+        GameObject insideObject = CloneObject(cuttable.gameObject, cutter, insideMesh, "inside", matrixTranslator);
+        GameObject outsideObject = CloneObject(cuttable.gameObject, cutter, outsideMesh, "outside", matrixTranslator);
+
+        GameObject insideObjectFill = CloneObject(cuttable.gameObject, cutter, insideMeshFill, "inside fill", matrixTranslator);
+        GameObject outsideObjectFill = CloneObject(cuttable.gameObject, cutter, outsideMeshFill, "outside fill", matrixTranslator);
 
 
         if (cutter.Material != null)
@@ -54,19 +61,19 @@ internal static class MeshSlicer
             subobject.transform.SetParent(cuttable.transform);
         }
 
-        outsideObjectFill.transform.SetParent(outsideObject.transform);
         insideObjectFill.transform.SetParent(insideObject.transform);
+        outsideObjectFill.transform.SetParent(outsideObject.transform);
 
         return result;
     }
 
-    private static GameObject CloneObject(GameObject baseObject, CutterBase cutter,VertexMesh submesh, string name)
+    private static GameObject CloneObject(GameObject baseObject, CutterBase cutter,VertexMesh submesh, string name, MatrixTranslator matrixTranslator)
     {
 
         string undoLable = "Cut " + baseObject.name;
 
 
-        submesh.ReturnNormal(baseObject.transform, cutter.transform);
+        matrixTranslator.ReturnNormal(submesh);
         Mesh mesh = submesh.ToMesh();
         mesh.RecalculateBounds();
 
@@ -75,7 +82,6 @@ internal static class MeshSlicer
         submeshObject.name = $"{baseObject.name} {name}";
         Undo.RegisterCreatedObjectUndo(submeshObject, undoLable);
         submeshObject.GetComponent<MeshFilter>().sharedMesh = mesh;
-
         return submeshObject;
     }
     
@@ -216,43 +222,17 @@ internal static class MeshSlicer
     }
 
     #region Inside Filling
-    private static void GenerateTrianglesForPlane(ref VertexMesh mesh, bool isPositive, Vector3 cutNormal, List<VertexData> pointsAlongPlane, bool makeSquareUV = true)
+    private static void GenerateTrianglesForPlane(ref VertexMesh mesh, bool isPositive, Vector3 cutNormal, List<VertexData> pointsAlongPlane)
     {
-
         Vector3 centerPoint = Vector3.zero;
-
-        Vector3 minPoint = Vector3.one * float.MaxValue;
-        Vector3 maxPoint = Vector3.one * float.MinValue;
         foreach (var vertex in pointsAlongPlane)
         {
             centerPoint += vertex.position;
-
-            minPoint = Vector3.Min(vertex.position, minPoint);
-            maxPoint = Vector3.Max(vertex.position, maxPoint);
         }
         centerPoint /= pointsAlongPlane.Count;
 
-        float totalDistance_z = maxPoint.z - minPoint.z;
-
-        Vector2 distance_xy = (Vector2)(maxPoint - minPoint);
-        float totalDistance_r = distance_xy.sqrMagnitude;
-
-        float highestTotalDistance = Mathf.Max(totalDistance_r, totalDistance_z);
-
-        foreach (var vertex in pointsAlongPlane)
-        {
-            if (makeSquareUV)
-                FixUV(vertex, minPoint, highestTotalDistance, highestTotalDistance);
-            else
-                FixUV(vertex, minPoint, totalDistance_z, totalDistance_r);
-        }
 
         VertexData halfway = new VertexData(-1, centerPoint, cutNormal, -Vector2.one);
-
-        if (makeSquareUV)
-            FixUV(halfway, minPoint, highestTotalDistance, highestTotalDistance);
-        else
-            FixUV(halfway, minPoint, totalDistance_z, totalDistance_r);
 
         for (int i = 0; i < pointsAlongPlane.Count; i++)
         {
@@ -283,16 +263,45 @@ internal static class MeshSlicer
         }
     }
 
-    private static void FixUV(VertexData vertex, Vector3 minPoint, float totalDistance_z, float totalDistance_r)
+    private static void FixMeshUVs(VertexMesh mesh, Bounds? customBounds = null, bool makeSquareUV = true)
     {
-        float distance_z = vertex.position.z - minPoint.z;
-        float distance_r = ((Vector2)(vertex.position - minPoint)).sqrMagnitude;
+        Bounds bounds;
+        if (customBounds.HasValue)
+            bounds = customBounds.Value;
+        else
+        {
+            Vector3 min = Vector3.one * float.MaxValue;
+            Vector3 max = Vector3.one * float.MinValue;
+            foreach (var v in mesh.Vertices)
+            {
+                min = Vector3.Min(v.position, min);
+                max = Vector3.Max(v.position, max);
+            }
 
+            bounds = new Bounds(min, max);
+        }
 
-        float zRatio = distance_z / totalDistance_z;
-        float rRatio = distance_r / totalDistance_r;
-        vertex.uv.x = Mathf.Lerp(0, 1, zRatio);
-        vertex.uv.y = Mathf.Lerp(0, 1, rRatio);
+        float totalDistance_z = bounds.size.z;
+        float totalDistance_r = ((Vector2)(bounds.size)).sqrMagnitude;
+
+        if (makeSquareUV)
+        {
+            float highest = Mathf.Max(totalDistance_r, totalDistance_z);
+            totalDistance_z = highest;
+            totalDistance_r = highest;
+        }
+
+        Vector3 minPoint = bounds.min;
+        foreach (var vertex in mesh.Vertices)
+        {
+            float distance_z = vertex.position.z - minPoint.z;
+            float distance_r = ((Vector2)(vertex.position - minPoint)).sqrMagnitude;
+
+            float zRatio = distance_z / totalDistance_z;
+            float rRatio = distance_r / totalDistance_r;
+            vertex.uv.x = Mathf.Lerp(0, 1, zRatio);
+            vertex.uv.y = Mathf.Lerp(0, 1, rRatio);
+        }
     }
 
     private static Vector3 GetHalfwayPoint(List<VertexData> pointsAlongPlane)
@@ -338,8 +347,9 @@ internal static class MeshSlicer
 
     public static CutResult SeperateByCut_InsertWithEarClipper(CuttableObject cuttable, CutterBase cutter)
     {
+        MatrixTranslator matrixTranslator = new MatrixTranslator(cuttable.transform, cutter.transform);
         VertexMesh mesh = new VertexMesh(cuttable.SharedMesh);
-        mesh.MoveAround(cuttable.transform, cutter.transform);
+        matrixTranslator.MoveAround(mesh);
         Polygon cut = cutter.ToPolygon();
         cut.Refresh();
         PolyTree hole = new PolyTree();
@@ -554,8 +564,8 @@ internal static class MeshSlicer
         VertexMesh insideMesh = new VertexMesh(innerTriangles);
 
 
-        GameObject insideObject = CloneObject(cuttable.gameObject, cutter, insideMesh, "inside");
-        GameObject outsideObject = CloneObject(cuttable.gameObject, cutter, outsideMesh, "outside");
+        GameObject insideObject = CloneObject(cuttable.gameObject, cutter, insideMesh, "inside", matrixTranslator);
+        GameObject outsideObject = CloneObject(cuttable.gameObject, cutter, outsideMesh, "outside", matrixTranslator);
 
         var result = new CutResult(insideObject, outsideObject);
 

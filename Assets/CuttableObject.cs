@@ -9,9 +9,12 @@ public class CuttableObject : MonoBehaviour
 
     public Mesh SharedMesh => meshFilter.sharedMesh;
 
+    public Bounds OriginalBounds { get; private set; }
+
     private void OnValidate()
     {
         meshFilter = GetComponent<MeshFilter>();
+        OriginalBounds = SharedMesh.bounds;
     }
 
 

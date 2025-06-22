@@ -9,6 +9,8 @@ public class CutterBase : MonoBehaviour
     private CuttableObject defaultTarget;
     [SerializeField]
     private Material materialForTheFiller;
+    [SerializeField]
+    public Texture texture;
 
     public Material Material => materialForTheFiller;
 
