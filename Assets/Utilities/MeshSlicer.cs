@@ -211,12 +211,12 @@ internal static class MeshSlicer
 
             Organize(ref vertices, plane.Plane.normal);
 
-            JoinPointsAlongPlane(ref mesh, isPositive, plane.Plane.normal, vertices);
+            GenerateTrianglesForPlane(ref mesh, isPositive, plane.Plane.normal, vertices);
         }
     }
 
     #region Inside Filling
-    private static void JoinPointsAlongPlane(ref VertexMesh mesh, bool isPositive, Vector3 cutNormal, List<VertexData> pointsAlongPlane)
+    private static void GenerateTrianglesForPlane(ref VertexMesh mesh, bool isPositive, Vector3 cutNormal, List<VertexData> pointsAlongPlane, bool makeSquareUV = true)
     {
 
         Vector3 centerPoint = Vector3.zero;
@@ -237,13 +237,22 @@ internal static class MeshSlicer
         Vector2 distance_xy = (Vector2)(maxPoint - minPoint);
         float totalDistance_r = distance_xy.sqrMagnitude;
 
+        float highestTotalDistance = Mathf.Max(totalDistance_r, totalDistance_z);
+
         foreach (var vertex in pointsAlongPlane)
         {
-            FixUV(vertex, minPoint, totalDistance_z, totalDistance_r);
+            if (makeSquareUV)
+                FixUV(vertex, minPoint, highestTotalDistance, highestTotalDistance);
+            else
+                FixUV(vertex, minPoint, totalDistance_z, totalDistance_r);
         }
 
         VertexData halfway = new VertexData(-1, centerPoint, cutNormal, -Vector2.one);
-        FixUV(halfway, minPoint, totalDistance_z, totalDistance_r);
+
+        if (makeSquareUV)
+            FixUV(halfway, minPoint, highestTotalDistance, highestTotalDistance);
+        else
+            FixUV(halfway, minPoint, totalDistance_z, totalDistance_r);
 
         for (int i = 0; i < pointsAlongPlane.Count; i++)
         {
@@ -278,6 +287,7 @@ internal static class MeshSlicer
     {
         float distance_z = vertex.position.z - minPoint.z;
         float distance_r = ((Vector2)(vertex.position - minPoint)).sqrMagnitude;
+
 
         float zRatio = distance_z / totalDistance_z;
         float rRatio = distance_r / totalDistance_r;
