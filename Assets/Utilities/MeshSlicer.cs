@@ -2,6 +2,7 @@
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 internal static class MeshSlicer
 {
@@ -38,8 +39,6 @@ internal static class MeshSlicer
         GameObject insideObjectFill = CloneObject(cuttable.gameObject, cutter, insideMeshFill, "inside fill");
         GameObject outsideObjectFill = CloneObject(cuttable.gameObject, cutter, outsideMeshFill, "outside fill");
 
-        insideObjectFill.transform.SetParent(insideObject.transform);
-        outsideObjectFill.transform.SetParent(outsideObject.transform);
 
         if (cutter.Material != null)
         {
@@ -47,13 +46,16 @@ internal static class MeshSlicer
             outsideObjectFill.GetComponent<MeshRenderer>().material = cutter.Material;
         }
 
-        var result = new CutResult(insideObject, outsideObject);
+        var result = new CutResult(outsideObject, insideObject, outsideObjectFill, insideObjectFill);
 
         // reparent to base object
         foreach (var subobject in result)
         {
             subobject.transform.SetParent(cuttable.transform);
         }
+
+        outsideObjectFill.transform.SetParent(outsideObject.transform);
+        insideObjectFill.transform.SetParent(insideObject.transform);
 
         return result;
     }
@@ -194,7 +196,7 @@ internal static class MeshSlicer
                     if (!newVertices.ContainsKey(plane))
                         newVertices.Add(plane, new List<VertexData>());
 
-                    newVertices[plane].Add(mesh.Vertices[i]);
+                    newVertices[plane].Add(mesh.Vertices[i].Copy());
                 }
             }
         }
@@ -219,13 +221,29 @@ internal static class MeshSlicer
 
         Vector3 centerPoint = Vector3.zero;
 
+        Vector3 minPoint = Vector3.one * float.MaxValue;
+        Vector3 maxPoint = Vector3.one * float.MinValue;
         foreach (var vertex in pointsAlongPlane)
         {
             centerPoint += vertex.position;
+
+            minPoint = Vector3.Min(vertex.position, minPoint);
+            maxPoint = Vector3.Max(vertex.position, maxPoint);
         }
         centerPoint /= pointsAlongPlane.Count;
 
-        VertexData halfway = new VertexData(-1, centerPoint, cutNormal, pointsAlongPlane[0].uv);
+        float totalDistance_z = maxPoint.z - minPoint.z;
+
+        Vector2 distance_xy = (Vector2)(maxPoint - minPoint);
+        float totalDistance_r = distance_xy.sqrMagnitude;
+
+        foreach (var vertex in pointsAlongPlane)
+        {
+            FixUV(vertex, minPoint, totalDistance_z, totalDistance_r);
+        }
+
+        VertexData halfway = new VertexData(-1, centerPoint, cutNormal, -Vector2.one);
+        FixUV(halfway, minPoint, totalDistance_z, totalDistance_r);
 
         for (int i = 0; i < pointsAlongPlane.Count; i++)
         {
@@ -256,6 +274,16 @@ internal static class MeshSlicer
         }
     }
 
+    private static void FixUV(VertexData vertex, Vector3 minPoint, float totalDistance_z, float totalDistance_r)
+    {
+        float distance_z = vertex.position.z - minPoint.z;
+        float distance_r = ((Vector2)(vertex.position - minPoint)).sqrMagnitude;
+
+        float zRatio = distance_z / totalDistance_z;
+        float rRatio = distance_r / totalDistance_r;
+        vertex.uv.x = Mathf.Lerp(0, 1, zRatio);
+        vertex.uv.y = Mathf.Lerp(0, 1, rRatio);
+    }
 
     private static Vector3 GetHalfwayPoint(List<VertexData> pointsAlongPlane)
     {

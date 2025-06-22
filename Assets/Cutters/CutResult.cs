@@ -6,22 +6,29 @@ public class CutResult : IEnumerable<GameObject>
 {
     public GameObject outterShape;
     public GameObject innerShape;
+    public GameObject outerShapeFill;
+    public GameObject innerShapeFill;
 
     public CutResult(GameObject outterShape, GameObject innerShape)
     {
         this.outterShape = outterShape;
         this.innerShape = innerShape;
     }
-
-    public List<GameObject> GetAllShapes()
+    
+    public CutResult(GameObject outterShape, GameObject innerShape, GameObject outerShapeFill, GameObject innerShapeFill)
     {
-        return new List<GameObject> { outterShape, innerShape };
+        this.outterShape = outterShape;
+        this.innerShape = innerShape;
+        this.outerShapeFill = outerShapeFill;
+        this.innerShapeFill = innerShapeFill;
     }
 
     public IEnumerator<GameObject> GetEnumerator()
     {
         yield return outterShape;
         yield return innerShape;
+        yield return outerShapeFill;
+        yield return innerShapeFill;
     }
 
     IEnumerator IEnumerable.GetEnumerator()

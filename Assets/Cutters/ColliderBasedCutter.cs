@@ -5,9 +5,13 @@ public class ColliderBasedCutter : CutterBase
 {
     private List<CuttableObject> objectsCurrentlyCutting = new List<CuttableObject>();
 
+    int count = 0;
     private void OnTriggerEnter(Collider other)
     {
-        if (other.TryGetComponent(out CuttableObject cuttableObject))
+
+        if (count > 10)
+            return;
+            if (other.TryGetComponent(out CuttableObject cuttableObject))
         {
             if (objectsCurrentlyCutting.Contains(cuttableObject))
                 return;
@@ -19,6 +23,10 @@ public class ColliderBasedCutter : CutterBase
             {
                 objectsCurrentlyCutting.Add(submeshObject.GetComponent<CuttableObject>());
             }
+
+            Debug.Log("cutting" + other.name);
+            count++;
+
 
         }
     }

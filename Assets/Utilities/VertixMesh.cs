@@ -98,6 +98,7 @@ public class VertexMesh
         Vector3 scale = Vector3.Scale(target.lossyScale, cutter.lossyScale.OneOver());
         foreach (var vertex in vertices)
         {
+            vertex.position.Scale(scale);
             vertex.position = targetMatrix.MultiplyPoint(vertex.position);
             vertex.normal = targetMatrix.MultiplyPoint(vertex.normal);
 
@@ -106,7 +107,6 @@ public class VertexMesh
             vertex.position = cutterMatrix.MultiplyPoint(vertex.position);
             vertex.normal = cutterMatrix.MultiplyPoint(vertex.normal);
 
-            vertex.position.Scale(scale);
         }
     }
 
@@ -131,7 +131,7 @@ public class VertexMesh
             if (vertex.isOnCurrectPosition)
                 continue;
 
-            vertex.position.Scale(scale);
+            
             vertex.position = cutterMatrix.MultiplyPoint(vertex.position);
             vertex.normal = cutterMatrix.MultiplyPoint(vertex.normal);
 
@@ -141,7 +141,7 @@ public class VertexMesh
             vertex.normal = targetMatrix.MultiplyPoint(vertex.normal).normalized;
 
             
-
+            vertex.position.Scale(scale);
             vertex.isOnCurrectPosition = true;
         }
     }
