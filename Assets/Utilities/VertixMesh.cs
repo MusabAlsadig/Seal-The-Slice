@@ -95,7 +95,7 @@ public class VertexMesh
         Matrix4x4 cutterMatrix = Matrix4x4.Rotate(cutter.rotation).inverse;
 
         Vector3 offset = target.position - cutter.position;
-        Vector3 scale = Vector3.Scale(target.lossyScale, cutter.lossyScale.OneOver());
+        Vector3 scale = target.lossyScale;
         foreach (var vertex in vertices)
         {
             vertex.position.Scale(scale);
@@ -124,7 +124,7 @@ public class VertexMesh
         Matrix4x4 cutterMatrix = Matrix4x4.Rotate(cutter.rotation);
 
         Vector3 offsetBack = cutter.position - target.position;
-        Vector3 scale = Vector3.Scale(cutter.lossyScale, target.lossyScale.OneOver());
+        Vector3 scale = target.lossyScale.OneOver();
         foreach (var vertex in vertices)
         {
             // make sure to only move each vertex once

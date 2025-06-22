@@ -39,7 +39,13 @@ public class CutterBase : MonoBehaviour
 
     public virtual CutShape GetShape()
     {
-        return new CutShape(points);
+        List<Vector2> copyPoints = new List<Vector2>();
+        for (int i = 0; i < points.Count; i++)
+        {
+            copyPoints.Add(Vector2.Scale(points[i], transform.lossyScale));
+        }
+
+        return new CutShape(copyPoints);
     }
 
     public Polygon ToPolygon()

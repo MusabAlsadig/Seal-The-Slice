@@ -42,8 +42,9 @@ internal class MatrixTranslationForCuttingTest : MonoBehaviour
             Vector3 nextPoint = target.vertices[nextIndex];
             Vector3 normal = target.normals[i];
 
-            point.Scale(Vector3.Scale(target_transform.lossyScale, transform.lossyScale.OneOver()));
-            nextPoint.Scale(Vector3.Scale(target_transform.lossyScale, transform.lossyScale.OneOver()));
+            Vector3 scale = target_transform.lossyScale;
+            point.Scale(scale);
+            nextPoint.Scale(scale);
 
             // translate with target matrix
             point = targetMatrix.MultiplyPoint(point);
@@ -106,7 +107,7 @@ internal class MatrixTranslationForCuttingTest : MonoBehaviour
             nextPoint = targetMatrix.MultiplyPoint(nextPoint);
             normal = targetMatrix.MultiplyPoint(normal);
 
-            Vector3 inverse = Vector3.Scale(target_transform.lossyScale.OneOver(), transform.lossyScale);
+            Vector3 inverse = scale.OneOver();
 
             point.Scale(inverse);
             nextPoint.Scale(inverse);
@@ -132,12 +133,15 @@ internal class MatrixTranslationForCuttingTest : MonoBehaviour
         for (int i = 0; i < points.Count; i++)
         {
             int nextIndex = i + 1 < points.Count ? i + 1 : 0;
-            Vector3 point = transform.position + (Vector3)points[i];
-            Vector3 nextpoint = transform.position + (Vector3)points[nextIndex];
+            Vector3 point = (Vector3)points[i];
+            Vector3 nextPoint = (Vector3)points[nextIndex];
+
+            point.Scale(transform.lossyScale);
+            nextPoint.Scale(transform.lossyScale);
 
             // lines
             Gizmos.color = Color.blue;
-            Gizmos.DrawLine(point, nextpoint);
+            Gizmos.DrawLine(point, nextPoint);
 
             // vertices
             Gizmos.color = Color.green;
