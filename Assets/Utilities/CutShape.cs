@@ -11,6 +11,9 @@ public class CutShape
 
     public List<LimitedPlane> planes = new List<LimitedPlane>();
 
+
+    public CutShape() { }
+
     public CutShape(List<Vector2> points)
     {
         this.points = points;
@@ -50,5 +53,10 @@ public class CutShape
         return planesToCheck.All(plane => plane.GetSideWithinLimits(point));
     }
 
+
+    
+
+
+    
 
 }

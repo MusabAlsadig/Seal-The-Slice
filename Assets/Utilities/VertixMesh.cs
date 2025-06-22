@@ -32,6 +32,14 @@ public class VertexMesh
         }
     }
 
+    public VertexMesh(List<Triangle> triangles)
+    {
+        foreach (var triangle in triangles)
+        {
+            AddTriangle(triangle);
+        }
+    }
+
     public void AddTriangle(VertexData a, VertexData b, VertexData c)
     {
         AddTriangle(new Triangle(a, b, c));
@@ -272,6 +280,7 @@ public class VertexMesh
     }
 }
 
+[System.Serializable]
 public class VertexData
 {
     public int index;
@@ -280,6 +289,13 @@ public class VertexData
     public Vector2 uv;
 
     public bool isOnCurrectPosition;
+
+    public List<Triangle> trianglesContainingIt = new List<Triangle>();
+
+    public VertexData Copy()
+    {
+        return new VertexData(index, position, normal, uv);
+    }
 
     public VertexData(int index, Vector3 position, Vector3 normal, Vector2 uv)
     {
@@ -302,11 +318,98 @@ public class Triangle
     public VertexData vertexB;
     public VertexData vertexC;
 
+    public Vector3 Normal => vertexA.normal;
+
     public Triangle(VertexData vertexA, VertexData vertexB, VertexData vertexC)
     {
         this.vertexA = vertexA;
         this.vertexB = vertexB;
         this.vertexC = vertexC;
+
+        vertexA.trianglesContainingIt.Add(this);
+        vertexB.trianglesContainingIt.Add(this);
+        vertexC.trianglesContainingIt.Add(this);
+    }
+
+    ~Triangle()
+    {
+        vertexA.trianglesContainingIt.Remove(this);
+        vertexB.trianglesContainingIt.Remove(this);
+        vertexC.trianglesContainingIt.Remove(this);
+    }
+
+    public Triangle (Point point)
+    {
+        vertexA = point.lastPoint.vertex;
+        vertexB = point.vertex;
+        vertexC = point.nextPoint.vertex;
+    }
+
+    public VertexData this[int i]
+    {
+        get
+        {
+            switch (i)
+            {
+                case 0: return vertexA;
+                case 1: return vertexB;
+                case 2: return vertexC;
+                default: return null;
+            }
+        }
+
+        set
+        {
+            switch (i)
+            {
+                case 0: vertexA = value; break;
+                case 1: vertexB = value; break;
+                case 2: vertexC = value; break;
+                default: return;
+            }
+        }
+    }
+
+    public bool Containt(VertexData vertexData)
+    {
+        for (int i = 0; i < 3; i++)
+        {
+            if (this[i] == vertexData)
+            {
+                return true;
+            }
+
+        }
+
+        // Vertex isn't part from this triangle
+        return false;
+    }
+    
+    public bool Containt(Vector3 position)
+    {
+        for (int i = 0; i < 3; i++)
+        {
+            if (this[i].position == position)
+            {
+                return true;
+            }
+
+        }
+
+        // Vertex isn't part from this triangle
+        return false;
+    }
+
+    public VertexData VertexAfter(VertexData vertex)
+    {
+        if (vertex == vertexA)
+            return vertexB;
+        else if (vertex == vertexB)
+            return vertexC;
+        else if (vertex == vertexC)
+            return vertexA;
+        else
+            return null;
     }
 
     public Vector3 GetPointInTheMiddle()
@@ -316,6 +419,48 @@ public class Triangle
             x = (vertexA.position.x + vertexB.position.x + vertexC.position.x) / 3,
             y = (vertexA.position.y + vertexB.position.y + vertexC.position.y) / 3,
             z = (vertexA.position.z + vertexB.position.z + vertexC.position.z) / 3,
+        };
+    }
+
+    public bool TryRaycastVertexIntoThisTriangle(VertexData vertex, Vector3 direction)
+    {
+        Plane plane = new Plane(vertexA.position, vertexB.position, vertexC.position);
+
+        Ray ray = new Ray(vertex.position, direction);
+        if (!plane.Raycast(ray, out float distance))
+        {
+            return false;
+        }
+
+        vertex.position += (direction * distance);
+        EditUV(vertex);
+        return true;
+    }
+
+    private void EditUV(VertexData raycastedVertex)
+    {
+        float totalwight = 0;
+        for (int i = 0; i < 3; i++)
+        {
+            VertexData vertex = this[i];
+            float distance = Vector3.Distance(raycastedVertex.position, vertex.position);
+
+            raycastedVertex.uv += vertex.uv * distance;
+            raycastedVertex.normal += vertex.normal * distance;
+            totalwight += distance;
+        }
+
+        raycastedVertex.uv /= totalwight;
+        raycastedVertex.normal /= totalwight;
+    }
+
+    public Vector3[] ToArray()
+    {
+        return new[]
+        {
+            vertexA.position,
+            vertexB.position,
+            vertexC.position
         };
     }
 }

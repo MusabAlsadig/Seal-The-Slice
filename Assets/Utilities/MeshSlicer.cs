@@ -147,9 +147,37 @@ internal static class MeshSlicer
             centerPoint += vertex.position;
         }
         centerPoint /= vertices.Count;
-
         vertices = vertices.OrderBy(v => Vector3.SignedAngle(Vector3.forward, v.position - centerPoint, normal)).ToList();
     }
+
+    private static void Organize(ref List<VertexData> vertices)
+    {
+
+        Vector2 centerPoint = Vector2.zero;
+
+        foreach (var vertex in vertices)
+        {
+            centerPoint += (Vector2)vertex.position;
+        }
+        centerPoint /= vertices.Count;
+        vertices = vertices.OrderByDescending(v => Vector2.SignedAngle(Vector2.right, (Vector2)v.position - centerPoint)).ToList();
+    }
+    
+    private static void Organize(ref List<Point> points)
+    {
+
+        Vector2 centerPoint = Vector2.zero;
+
+        foreach (var point in points)
+        {
+            centerPoint += (Vector2)point.Position;
+        }
+        centerPoint /= points.Count;
+        points = points.OrderByDescending(p => Vector2.SignedAngle(Vector2.right, (Vector2)p.Position - centerPoint)).ToList();
+    }
+
+
+
 
     private static void FillTheInside(VertexMesh mesh, bool isPositive, CutShape cut, VertexMesh otherMeshToPutInto = null)
     {
@@ -268,4 +296,324 @@ internal static class MeshSlicer
         return normal.normalized;
     }
     #endregion
+
+
+    public static CutResult SeperateByCut_InsertWithEarClipper(CuttableObject cuttable, CutterBase cutter)
+    {
+        VertexMesh mesh = new VertexMesh(cuttable.SharedMesh);
+        mesh.MoveAround(cuttable.transform, cutter.transform);
+        Polygon cut = cutter.ToPolygon();
+        cut.Refresh();
+        PolyTree hole = new PolyTree();
+        hole.shape = cut;
+
+        // remove tringles that cross the cut,
+        // or at least contain vertices closest to the cut
+        List<Triangle> removedTriangles = new List<Triangle>();
+        foreach (var triangle in mesh.Triangles)
+        {
+            if (cut.Intersect(triangle))
+                removedTriangles.Add(triangle);
+        }
+
+        foreach (var triangle in removedTriangles)
+        {
+            // remove triangles from the mesh
+            mesh.RemoveTriangle(triangle);
+        }
+
+
+
+        List<Triangle> newTriangles = new List<Triangle>();
+        List<Triangle> innerTriangles = new List<Triangle>();
+        
+
+        
+        while (removedTriangles.Count > 0)
+        {
+            // re-construct all polygons, one by one
+
+
+
+            VertexData startVertex = removedTriangles[0].vertexA;
+            VertexData currentVertex = startVertex;
+            Triangle currentTriangle = startVertex.trianglesContainingIt[0];
+
+            
+            List<VertexData> verticesInCurrentPlane = new List<VertexData>();
+            var leftTriangles = new List<Triangle>();
+            AddVerticesTouchingTriangle(ref verticesInCurrentPlane, currentTriangle, ref removedTriangles, ref leftTriangles);
+            var tringles = SeperateByNormals(leftTriangles);
+            Dictionary<Vector3, Polygon> polygons = SeperateByNormals(verticesInCurrentPlane);
+            
+
+            while (polygons.Count > 0)
+            {
+                Vector3 normal = polygons.Keys.First();
+                Polygon polygon = polygons[normal];
+                Organize(ref polygon.points);
+                List<Triangle> currentShapeTriangles = tringles[normal];
+                PolyTree holeCopy = hole.Copy();
+                List<Point> pointsOutside = new List<Point>();
+                Dictionary<Point, Triangle> pointsInside = new Dictionary<Point, Triangle>();
+                foreach (Point point in holeCopy.shape)
+                {
+                    bool foundTriangle = false;
+                    foreach (var triangle in currentShapeTriangles)
+                    {
+                        // try to see both forward and backward, since the cut might be inside the mesh
+                        if (EarClipper.IsPointInTriangle(point.Position, triangle.vertexA.position, triangle.vertexB.position, triangle.vertexC.position))
+                        {
+                            if (triangle.TryRaycastVertexIntoThisTriangle(point.vertex, Vector3.forward) ||
+                                triangle.TryRaycastVertexIntoThisTriangle(point.vertex, Vector3.back))
+                            {
+                                pointsInside.Add(point, triangle);
+                                foundTriangle = true;
+                                break;
+                            }
+
+                        }
+
+                    }
+                    if (!foundTriangle)
+                        pointsOutside.Add(point);
+                }
+
+                List<Vector3> intersections = new List<Vector3>();
+                List<Point> points = new List<Point>(polygon.points);
+                for (int i = 0; i < pointsOutside.Count; i++)
+                {
+                    Point point = pointsOutside[i];
+
+                    Point lastPoint = point.lastPoint;
+                    Point nextPoint = point.nextPoint;
+                    
+                    for (int j = 0; j < points.Count; j++)
+                    {
+                        VertexData currentVertexInPolygon = points[j].vertex;
+                        VertexData nextVertexInPolygon = points[(j + 1) % points.Count].vertex;
+
+                        if (TryFindIntesectionPoint(currentVertexInPolygon.position, nextVertexInPolygon.position, lastPoint.Position, point.Position, out Vector3 intersectionPosition) &&
+                            !intersections.Contains(intersectionPosition))
+                        {
+                            intersections.Add(intersectionPosition);
+
+                            VertexData intersectionVertex = new VertexData(-1, intersectionPosition, currentVertexInPolygon.normal, currentVertexInPolygon.uv);
+                            int holeIndex = holeCopy.shape.points.IndexOf(point);
+                            holeCopy.shape.points.Insert(holeIndex, new Point(intersectionVertex));
+
+                            int polygonIndex = polygon.points.FindIndex(p => p.vertex.position == currentVertexInPolygon.position);
+                            polygon.points.Insert(polygonIndex + 1, new Point(intersectionVertex));
+                        }
+
+
+                        if (TryFindIntesectionPoint(currentVertexInPolygon.position, nextVertexInPolygon.position, nextPoint.Position, point.Position, out Vector3 intersectionPosition2) &&
+                            !intersections.Contains(intersectionPosition2))
+                        {
+                            intersections.Add(intersectionPosition2);
+
+
+                            VertexData intersectionVertex = new VertexData(-1, intersectionPosition2, currentVertexInPolygon.normal, currentVertexInPolygon.uv);
+                            int holeIndex = holeCopy.shape.points.IndexOf(point);
+                            holeCopy.shape.points.Insert((holeIndex + 1) % polygon.points.Count, new Point(intersectionVertex));
+
+                            int polygonIndex = polygon.points.FindIndex(p => p.vertex.position == nextVertexInPolygon.position);
+                            polygon.points.Insert((polygonIndex - 1 + polygon.points.Count) % polygon.points.Count, new Point(intersectionVertex));
+                        }
+                    }
+
+
+
+                        if (i == pointsOutside.Count - 1)
+                            Debug.Log("");
+                    holeCopy.shape.points.Remove(point);
+                }
+
+                Organize(ref polygon.points);
+                polygon.Refresh();
+                if (holeCopy.shape.direction == polygon.direction)
+                    holeCopy.shape.Reverse();
+                else
+                    holeCopy.shape.Refresh();
+
+
+                innerTriangles.AddRange(EarClipper.FillPolygoneTree(holeCopy));
+
+                // seperate polygon into multiple if needed
+                Polygon currentShape = polygon;
+                Polygon otherShape = holeCopy.shape;
+
+                for (int saftyCounter1 = 0; saftyCounter1 < 100; saftyCounter1++)
+                {
+                    if (currentShape.PointsCount == 0 && otherShape.PointsCount == 0)
+                        break;
+
+                    Point startPoint = currentShape.points.Find(p => holeCopy.shape.points.Find(p2 => p2.vertex == p.vertex) == null);
+                    Point currentPoint = startPoint;
+                    Polygon cuttedPolygon = new Polygon();
+
+
+                    for (int saftyCounter = 0; saftyCounter < 1000; saftyCounter++)
+                    {
+                        cuttedPolygon.points.Add(currentPoint);
+
+                        currentShape.Remove(currentPoint);
+                        
+
+                        Point pointOnOtherShape = otherShape.points.Find(p => p.vertex == currentPoint.vertex);
+                        if (pointOnOtherShape != null)
+                        {
+                            currentPoint = pointOnOtherShape.nextPoint;
+                            otherShape.Remove(pointOnOtherShape);
+
+                            // switch shapes
+                            if (otherShape == holeCopy.shape)
+                            {
+                                otherShape = polygon;
+                                currentShape = holeCopy.shape;
+                            }
+                            else
+                            {
+                                otherShape = holeCopy.shape;
+                                currentShape = polygon;
+                            }
+                        }
+                        else
+                            currentPoint = currentPoint.nextPoint;
+
+
+                        if (currentPoint == startPoint)
+                            break;
+                    }
+
+                    PolyTree polyTree = new PolyTree();
+                    if (cuttedPolygon.points.Count != 0)
+                    {
+                        cuttedPolygon.Refresh();
+                        polyTree.shape = cuttedPolygon;
+                    }
+                    else
+                    {
+                        polyTree.shape = polygon;
+                        polyTree.AddChild(holeCopy);
+                    }
+                    polygons.Remove(normal);
+
+
+                    newTriangles.AddRange(EarClipper.FillPolygoneTree(polyTree));
+                    holeCopy.shape.Reverse();
+                    
+                }
+            }
+        }
+
+        VertexMesh outsideMesh = mesh;
+        foreach (var triangle in newTriangles)
+        {
+            mesh.AddTriangle(triangle);
+        }
+
+        VertexMesh insideMesh = new VertexMesh(innerTriangles);
+
+
+        GameObject insideObject = CloneObject(cuttable.gameObject, cutter, insideMesh, "inside");
+        GameObject outsideObject = CloneObject(cuttable.gameObject, cutter, outsideMesh, "outside");
+
+        var result = new CutResult(insideObject, outsideObject);
+
+        return result;
+    }
+
+    private static void AddVerticesTouchingTriangle(ref List<VertexData> vertices , Triangle triangle, ref List<Triangle> trianglesToSearch, ref List<Triangle> currentTriangles)
+    {
+
+        for (int i = 0; i < 3; i++)
+        {
+            VertexData vertex = triangle[i];
+            if (!vertices.Contains(vertex))
+                vertices.Add(vertex);
+
+            Triangle t = trianglesToSearch.Find(t => t.Containt(vertex.position));
+            if (t != null)
+            {
+
+                trianglesToSearch.Remove(t);
+                currentTriangles.Add(t);
+                AddVerticesTouchingTriangle(ref vertices, t, ref trianglesToSearch, ref currentTriangles);
+            }
+        }
+    }
+
+    private static Dictionary<Vector3,Polygon> SeperateByNormals(List<VertexData> verts)
+    {
+        Dictionary<Vector3,Polygon> polygons = new Dictionary<Vector3, Polygon>();
+        foreach (var v in verts)
+        {
+            if (polygons.ContainsKey(v.normal))
+                polygons[v.normal].points.Add(new Point(v));
+            else
+            {
+                Polygon p = new Polygon();
+                p.points.Add(new Point(v));
+                polygons.Add(v.normal, p);
+            }
+        }
+
+        foreach (Polygon p in polygons.Values)
+        {
+            p.Refresh();
+        }
+
+        return polygons;
+    }
+
+    private static Dictionary<Vector3,List<Triangle>> SeperateByNormals(List<Triangle> triangles)
+    {
+        Dictionary<Vector3, List<Triangle>> result = new Dictionary<Vector3, List<Triangle>>();
+        foreach (var t in triangles)
+        {
+                if (result.ContainsKey(t.Normal))
+                    result[t.Normal].Add(t);
+                else
+                {
+                    result.Add(t.Normal, new List<Triangle>() { t });
+                }
+        }
+
+        return result;
+    }
+
+    public static bool TryFindIntesectionPoint(Vector3 p11, Vector3 p12, Vector3 p21, Vector3 p22, out Vector3 intersection)
+    {
+        intersection = Vector3.zero;
+
+
+        Vector3 p = p11;
+        Vector3 r = p12 - p11;
+
+        Vector3 q = p21;
+        Vector3 s = p22 - p21;
+
+        float cross_rs = Cross(r, s);
+
+        float t = Cross((q - p), s) / cross_rs;
+        float u = Cross((q - p), r) / cross_rs;
+
+        if (cross_rs != 0 &&
+            t >= 0  && t <= 1 &&
+            u >= 0 && u <= 1)
+
+        {
+            intersection = p + t * r;
+            return true;
+        }
+        else 
+            return false;
+
+        float Cross(Vector2 v, Vector2 w)
+        {
+            return v.x * w.y - v.y * w.x;
+        }
+    }
+
 }
