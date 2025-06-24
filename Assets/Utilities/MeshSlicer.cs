@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using Extentions;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
@@ -32,11 +33,9 @@ internal static class MeshSlicer
         FillTheInside(insideMesh, true, cut, insideMeshFill);
         FillTheInside(outsideMesh, false, cut, outsideMeshFill);
 
-        // TODO : fix the calculation of uv based on bounds,
-        //Bounds translatedBounds = matrixTranslator.MoveAround(cuttable.OriginalBounds);
-
-        FixMeshUVs(insideMeshFill);
-        FixMeshUVs(outsideMeshFill);
+        Bounds translatedBounds = matrixTranslator.MoveAround(cuttable.OriginalBounds);
+        FixMeshUVs(insideMeshFill, translatedBounds);
+        FixMeshUVs(outsideMeshFill, translatedBounds);
 
         GameObject insideObject;
         if (cutter.KeepInside)
@@ -301,26 +300,31 @@ internal static class MeshSlicer
             bounds = new Bounds(min, max);
         }
 
-        float totalDistance_z = bounds.size.z;
-        float totalDistance_r = ((Vector2)(bounds.size)).sqrMagnitude;
+        Vector3 totalDistance = bounds.size;
 
         if (makeSquareUV)
         {
-            float highest = Mathf.Max(totalDistance_r, totalDistance_z);
-            totalDistance_z = highest;
-            totalDistance_r = highest;
+            totalDistance = Vector3.one * totalDistance.HighestValue();
         }
 
         Vector3 minPoint = bounds.min;
         foreach (var vertex in mesh.Vertices)
         {
-            float distance_z = vertex.position.z - minPoint.z;
-            float distance_r = ((Vector2)(vertex.position - minPoint)).sqrMagnitude;
+            Vector3 distance = vertex.position - minPoint;
 
-            float zRatio = distance_z / totalDistance_z;
-            float rRatio = distance_r / totalDistance_r;
+            // first axis is always (z) in this cut calculations
+            Axis secondUVAxis;
+            if (Mathf.Abs(vertex.normal.x) < Mathf.Abs(vertex.normal.y))
+                secondUVAxis = Axis.x;
+            else
+                secondUVAxis= Axis.y;
+
+            float zRatio = distance.z / totalDistance.z;
+            float secondRatio = distance.Value(secondUVAxis) / totalDistance.Value(secondUVAxis);
             vertex.uv.x = Mathf.Lerp(0, 1, zRatio);
-            vertex.uv.y = Mathf.Lerp(0, 1, rRatio);
+            vertex.uv.y = Mathf.Lerp(0, 1, secondRatio);
+
+            Debug.Log(vertex.uv);
         }
     }
 

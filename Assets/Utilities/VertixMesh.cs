@@ -133,34 +133,7 @@ public class VertexMesh
     }
 
 
-    public void JoinPointsAlongPlane(ref VertexMesh positive, ref VertexMesh negative, Vector3 cutNormal, List<VertexData> pointsAlongPlane)
-    {
-
-        VertexData halfway = new VertexData(vertices.Count, GetHalfwayPoint(pointsAlongPlane),cutNormal, pointsAlongPlane[0].uv);
-
-        for (int i = 0; i < pointsAlongPlane.Count; i += 2)
-        {
-            VertexData firstVertex = pointsAlongPlane[i];
-            VertexData secondVertex = pointsAlongPlane[i + 1];
-
-            Vector3 normal = ComputeNormal(halfway, secondVertex, firstVertex);
-
-            float dot = Vector3.Dot(normal, cutNormal);
-
-            if (dot > 0)
-            {
-                //used if calculated normal aligns with plane normal                           
-                positive.AddTriangle(firstVertex.CloneWithNormal(-cutNormal), secondVertex.CloneWithNormal(-cutNormal), halfway.CloneWithNormal(-cutNormal));
-                negative.AddTriangle(secondVertex.CloneWithNormal(cutNormal), firstVertex.CloneWithNormal(cutNormal), halfway.CloneWithNormal(cutNormal));
-            }
-            else
-            {
-                //used if calculated normal is opposite to plane normal
-                negative.AddTriangle(firstVertex.CloneWithNormal(cutNormal), secondVertex.CloneWithNormal(cutNormal), halfway.CloneWithNormal(cutNormal));
-                positive.AddTriangle(secondVertex.CloneWithNormal(-cutNormal), firstVertex.CloneWithNormal(-cutNormal), halfway.CloneWithNormal(-cutNormal));
-            }
-        }
-    }
+    
     private Vector3 GetHalfwayPoint(List<VertexData> pointsAlongPlane)
     {
         if (pointsAlongPlane.Count > 0)

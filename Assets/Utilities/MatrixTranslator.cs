@@ -107,27 +107,21 @@ public class MatrixTranslator
             return bounds;
         }
 
-        Matrix4x4 targetMatrix = Matrix4x4.Rotate(target.rotation);
-        Matrix4x4 cutterMatrix = Matrix4x4.Rotate(cutter.rotation).inverse;
-
         Vector3 offset = target.position - cutter.position;
         Vector3 scale = target.lossyScale;
 
         Vector3 min = bounds.min;
 
         min.Scale(scale);
-        min = targetMatrix.MultiplyPoint(min);
         min += offset;
-        min = cutterMatrix.MultiplyPoint(min);
 
 
         Vector3 max = bounds.max;
 
         max.Scale(scale);
-        max = targetMatrix.MultiplyPoint(max);
         max += offset;
-        max = cutterMatrix.MultiplyPoint(max);
 
-        return new Bounds(min, max);
+        bounds.SetMinMax(min, max);
+        return bounds;
     }
 }
