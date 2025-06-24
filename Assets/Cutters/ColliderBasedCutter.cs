@@ -3,38 +3,33 @@ using UnityEngine;
 
 public class ColliderBasedCutter : CutterBase
 {
-    private List<CuttableObject> objectsCurrentlyCutting = new List<CuttableObject>();
+    private List<CuttableRootObject> objectsCurrentlyCutting = new List<CuttableRootObject>();
 
-    int count = 0;
     private void OnTriggerEnter(Collider other)
     {
-
-        if (count > 10)
-            return;
-            if (other.TryGetComponent(out CuttableObject cuttableObject))
+        if (objectsCurrentlyCutting.Count > 10)
         {
-            if (objectsCurrentlyCutting.Contains(cuttableObject))
+            Debug.Log("is this an infinit loop?, there is more than 100 objects getting cut at once");
+            return;
+        }
+        if (other.TryGetComponent(out CuttableObject cuttableObject))
+        {
+            if (objectsCurrentlyCutting.Contains(cuttableObject.Root))
                 return;
 
-            objectsCurrentlyCutting.Add(cuttableObject);
             CutResult cutResult = Cut(cuttableObject);
+            if (cutResult == null)
+                return;
 
-            foreach (var submeshObject in cutResult)
-            {
-                objectsCurrentlyCutting.Add(submeshObject.GetComponent<CuttableObject>());
-            }
-
+            objectsCurrentlyCutting.Add(cuttableObject.Root);
             Debug.Log("cutting" + other.name);
-            count++;
-
-
         }
     }
 
     private void OnTriggerExit(Collider other)
     {
         if (other.TryGetComponent(out CuttableObject cuttableObject))
-            objectsCurrentlyCutting.Remove(cuttableObject);
+            objectsCurrentlyCutting.Remove(cuttableObject.Root);
     }
 
 }

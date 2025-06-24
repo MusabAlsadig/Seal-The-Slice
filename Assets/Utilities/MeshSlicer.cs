@@ -2,11 +2,9 @@
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.UIElements;
 
 internal static class MeshSlicer
 {
-
     public static CutResult SeperateByCut(CuttableObject cuttable, CutterBase cutter)
     {
         MatrixTranslator matrixTranslator = new MatrixTranslator(cuttable.transform, cutter.transform);
@@ -40,17 +38,29 @@ internal static class MeshSlicer
         FixMeshUVs(insideMeshFill);
         FixMeshUVs(outsideMeshFill);
 
-        GameObject insideObject = CloneObject(cuttable.gameObject, cutter, insideMesh, "inside", matrixTranslator);
-        GameObject outsideObject = CloneObject(cuttable.gameObject, cutter, outsideMesh, "outside", matrixTranslator);
+        GameObject insideObject;
+        if (cutter.KeepInside)
+            insideObject = CloneObject(cuttable, cutter, insideMesh, "inside", matrixTranslator);
+        else
+            insideObject = null;
 
-        GameObject insideObjectFill = CloneObject(cuttable.gameObject, cutter, insideMeshFill, "inside fill", matrixTranslator);
-        GameObject outsideObjectFill = CloneObject(cuttable.gameObject, cutter, outsideMeshFill, "outside fill", matrixTranslator);
+        GameObject insideObjectFill;
+        if (cutter.KeepInside)
+            insideObjectFill = CloneObject(cuttable, cutter, insideMeshFill, "inside fill", matrixTranslator);
+        else
+            insideObjectFill = null;
+
+        GameObject outsideObject = CloneObject(cuttable, cutter, outsideMesh, "outside", matrixTranslator);
+        GameObject outsideObjectFill = CloneObject(cuttable, cutter, outsideMeshFill, "outside fill", matrixTranslator);
 
 
         if (cutter.Material != null)
         {
-            insideObjectFill.GetComponent<MeshRenderer>().material = cutter.Material;
-            outsideObjectFill.GetComponent<MeshRenderer>().material = cutter.Material;
+            Material m = new Material(cutter.Material);
+            if (cutter.KeepInside)
+                insideObjectFill.AddComponent<CutFillEffect>().Setup(cutter.FadeTime, m);
+
+            outsideObjectFill.AddComponent<CutFillEffect>().Setup(cutter.FadeTime, m);
         }
 
         var result = new CutResult(outsideObject, insideObject, outsideObjectFill, insideObjectFill);
@@ -58,30 +68,40 @@ internal static class MeshSlicer
         // reparent to base object
         foreach (var subobject in result)
         {
-            subobject.transform.SetParent(cuttable.transform);
+            subobject.transform.SetParent(cuttable.transform, false);
         }
 
-        insideObjectFill.transform.SetParent(insideObject.transform);
+        if (cutter.KeepInside)
+            insideObjectFill.transform.SetParent(insideObject.transform);
+
         outsideObjectFill.transform.SetParent(outsideObject.transform);
 
         return result;
     }
 
-    private static GameObject CloneObject(GameObject baseObject, CutterBase cutter,VertexMesh submesh, string name, MatrixTranslator matrixTranslator)
+    private static GameObject CloneObject(CuttableObject baseObject, CutterBase cutter,VertexMesh submesh, string name, MatrixTranslator matrixTranslator, bool isSeperateObject = false)
     {
-
         string undoLable = "Cut " + baseObject.name;
-
 
         matrixTranslator.ReturnNormal(submesh);
         Mesh mesh = submesh.ToMesh();
         mesh.RecalculateBounds();
 
         mesh.name = baseObject.name + " cut ";
-        GameObject submeshObject = Object.Instantiate(baseObject);
-        submeshObject.name = $"{baseObject.name} {name}";
+        GameObject submeshObject = new GameObject($"{baseObject.name} {name}");
         Undo.RegisterCreatedObjectUndo(submeshObject, undoLable);
-        submeshObject.GetComponent<MeshFilter>().sharedMesh = mesh;
+
+        var meshCollider = submeshObject.AddComponent<MeshCollider>();
+        meshCollider.sharedMesh = mesh;
+        meshCollider.convex = true;
+        submeshObject.AddComponent<MeshFilter>().sharedMesh = mesh;
+        submeshObject.AddComponent<MeshRenderer>().materials = baseObject.GetComponent<MeshRenderer>().materials;
+
+        if (isSeperateObject)
+            submeshObject.AddComponent<CuttableRootObject>();
+        else
+            submeshObject.AddComponent<CuttableSubObject>().Setup(baseObject.Root);
+
         return submeshObject;
     }
     
@@ -564,8 +584,8 @@ internal static class MeshSlicer
         VertexMesh insideMesh = new VertexMesh(innerTriangles);
 
 
-        GameObject insideObject = CloneObject(cuttable.gameObject, cutter, insideMesh, "inside", matrixTranslator);
-        GameObject outsideObject = CloneObject(cuttable.gameObject, cutter, outsideMesh, "outside", matrixTranslator);
+        GameObject insideObject = CloneObject(cuttable, cutter, insideMesh, "inside", matrixTranslator);
+        GameObject outsideObject = CloneObject(cuttable, cutter, outsideMesh, "outside", matrixTranslator);
 
         var result = new CutResult(insideObject, outsideObject);
 

@@ -46,15 +46,6 @@ public class CutterEditor : Editor
     }
 
 
-    private Vector2 GetCenter(List<Vector2> vectors)
-    {
-        Vector2 center = Vector2.zero;
-
-        vectors.ForEach(v => center += v);
-
-        center /= vectors.Count;
-        return center;
-    }
 
     #region Gizmos
 

@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 using System;
-
+using static Utilities;
 public class LimitedPlane
 {
     private Plane plane;
@@ -12,12 +12,12 @@ public class LimitedPlane
 
     private const float ErrorTolirance = 0.0001f;
 
-    public LimitedPlane(Vector2 a, Vector2 b)
+    public LimitedPlane(Vector2 a, Vector2 b, PolygonDirection direction)
     {
         pointA = a;
         pointB = b;
 
-        Vector3 normal = PerpendicularCounterClockwise(pointB - pointA);
+        Vector3 normal = Rotate(pointB- pointA, Vector2.zero, 90, direction);
         normal.Normalize();
         plane = new Plane(normal, pointA);
     }

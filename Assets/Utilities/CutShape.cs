@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using static Utilities;
 
 [Serializable]
 public class CutShape
@@ -24,11 +25,11 @@ public class CutShape
             Vector2 currentPoint = points[i];
             Vector2 nextPoint = points[nextIndex];
 
-            LimitedPlane plane = new LimitedPlane(currentPoint, nextPoint);
+            LimitedPlane plane = new LimitedPlane(currentPoint, nextPoint, PolygonDirection.CounterClockwise);
             planes.Add(plane);
         }
     }
-
+    
     public bool IsInside(Triangle triangle)
     {
         return IsPointInside(triangle.GetPointInTheMiddle());

@@ -68,6 +68,7 @@ Material:
     m_Floats:
     - _Contrast: 4
     - _Effect: 1
+    - _Fade: 1
     - _QueueControl: 0
     - _QueueOffset: 0
     - _Speed: 0.4

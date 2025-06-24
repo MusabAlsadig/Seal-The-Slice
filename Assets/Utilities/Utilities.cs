@@ -60,6 +60,35 @@ public static class Utilities
     }
 
 
+    public static Vector2 GetCenter(List<Vector2> vectors)
+    {
+        Vector2 center = Vector2.zero;
+
+        vectors.ForEach(v => center += v);
+
+        center /= vectors.Count;
+        return center;
+    }
+
+    public static Vector2 Rotate(Vector2 vectorToRotate, Vector2 centerPoint, float angleInDegrees, PolygonDirection direction)
+    {
+        if (direction == PolygonDirection.Clockwise)
+            angleInDegrees *= -1;
+
+        float angleInRadians = angleInDegrees * (Mathf.PI / 180);
+        float cosTheta = Mathf.Cos(angleInRadians);
+        float sinTheta = Mathf.Sin(angleInRadians);
+        return new Vector2
+        {
+            x =
+                cosTheta * (vectorToRotate.x - centerPoint.x) -
+                sinTheta * (vectorToRotate.y - centerPoint.y) + centerPoint.x,
+            y =
+                sinTheta * (vectorToRotate.x - centerPoint.x) +
+                cosTheta * (vectorToRotate.y - centerPoint.y) + centerPoint.y
+        };
+    }
+
     public enum PolygonDirection
     {
         Clockwise = -1,

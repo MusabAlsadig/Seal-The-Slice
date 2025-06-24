@@ -45,14 +45,14 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _Contrast: 3.5
-    - _Effect: 1
+    - _Contrast: 4
+    - _Effect: 0
     - _QueueControl: 0
     - _QueueOffset: 0
-    - _Speed: 0.4
+    - _Speed: 0.384
     m_Colors:
-    - _Color1: {r: 1, g: 0.5527359, b: 0, a: 0}
-    - _Color2: {r: 1, g: 0.9867323, b: 0, a: 0}
+    - _Color1: {r: 0.6123543, g: 0, b: 1, a: 0}
+    - _Color2: {r: 0, g: 1, b: 0.6815295, a: 0}
     - _Direction: {r: 0, g: -1, b: 0, a: 0}
   m_BuildTextureStacks: []
 --- !u!114 &5660106504390561954

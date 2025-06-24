@@ -1,17 +1,20 @@
-﻿using System.Collections.Generic;
-using UnityEditor;
+﻿using UnityEditor;
 using UnityEngine;
 
-public class CuttableObject : MonoBehaviour
+public abstract class CuttableObject : MonoBehaviour
 {
     [SerializeField]
     private MeshFilter meshFilter;
+
+    public bool BeenCuted { get; private set; }
 
     public Mesh SharedMesh => meshFilter.sharedMesh;
 
     public Bounds OriginalBounds { get; private set; }
 
-    private void OnValidate()
+    public abstract CuttableRootObject Root { get; }
+
+    protected void OnValidate()
     {
         meshFilter = GetComponent<MeshFilter>();
         OriginalBounds = SharedMesh.bounds;
@@ -25,15 +28,19 @@ public class CuttableObject : MonoBehaviour
 
         Undo.RecordObject(gameObject, undoLable);
         name += " (sliced)";
-
+        BeenCuted = true;
         if (Application.isPlaying)
         {
             Destroy(meshFilter);
+            Destroy(GetComponent<Collider>());
+            Destroy(GetComponent<MeshRenderer>());
             Destroy(this);
         }
         else
         {
             Undo.DestroyObjectImmediate(meshFilter);
+            Undo.DestroyObjectImmediate(GetComponent<Collider>());
+            Undo.DestroyObjectImmediate(GetComponent<MeshRenderer>());
             Undo.DestroyObjectImmediate(this);
         }
     }

@@ -10,10 +10,14 @@ public class CutterBase : MonoBehaviour
     [SerializeField]
     private Material materialForTheFiller;
     [SerializeField]
-    public Texture texture;
+    private float fadeTime = 3;
+    [SerializeField]
+    private bool keepInside;
 
     public Material Material => materialForTheFiller;
+    public float FadeTime => fadeTime;
 
+    public bool KeepInside => keepInside;
 
     public void CutShapeInFront()
     {
@@ -34,6 +38,8 @@ public class CutterBase : MonoBehaviour
 
     public CutResult Cut(CuttableObject target)
     {
+        if (target.BeenCuted)
+            return null;
         CutResult cutResult = MeshSlicer.SeperateByCut(target, this);
         target.AfterCutCleanup();
         return cutResult;
@@ -46,7 +52,6 @@ public class CutterBase : MonoBehaviour
         {
             copyPoints.Add(Vector2.Scale(points[i], transform.lossyScale));
         }
-
         return new CutShape(copyPoints);
     }
 
