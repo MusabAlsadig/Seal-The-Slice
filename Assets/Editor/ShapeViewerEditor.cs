@@ -1,6 +1,7 @@
 ﻿using UnityEditor;
 using UnityEngine;
 using System.Collections.Generic;
+using SealTheSlice;
 
 [CustomEditor(typeof(ShapeViewer))]
 public class ShapeViewerEditor : Editor

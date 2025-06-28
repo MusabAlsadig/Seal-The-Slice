@@ -1,6 +1,7 @@
 ﻿using Sirenix.OdinInspector;
 using System.Collections.Generic;
 using UnityEngine;
+using SealTheSlice;
 
 public class MeshBasedCutter : MonoBehaviour
 {

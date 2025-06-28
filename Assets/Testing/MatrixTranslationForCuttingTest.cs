@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 using Sirenix.OdinInspector;
-using Extentions;
+using SealTheSlice.Extentions;
 
 internal class MatrixTranslationForCuttingTest : MonoBehaviour
 {
@@ -64,7 +64,7 @@ internal class MatrixTranslationForCuttingTest : MonoBehaviour
             nextPoint = cutterMatrix.MultiplyPoint(nextPoint);
             normal = cutterMatrix.MultiplyPoint(normal);
 
-            
+
 
             // lines
             Gizmos.color = Color.yellow;
@@ -85,14 +85,14 @@ internal class MatrixTranslationForCuttingTest : MonoBehaviour
             cutterMatrix = cutterMatrix.inverse;
             targetMatrix = targetMatrix.inverse;
 
-            
+
 
             // translate with cutter matrix
             point = cutterMatrix.MultiplyPoint(point);
             nextPoint = cutterMatrix.MultiplyPoint(nextPoint);
             normal = cutterMatrix.MultiplyPoint(normal);
 
-            
+
 
             // add the movement of target
             point -= target_transform.position;
