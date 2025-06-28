@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using UnityEngine;
 using static Utilities;
 
 [System.Serializable]
@@ -79,6 +80,34 @@ public class Polygon : IEnumerable<Point>
         bool IsSameSideY = IsSameSide_Y(triangle);
 
         return !IsSameSideX && !IsSameSideY;
+    }
+
+    public bool IsInsideTheShape(Triangle triangle)
+    {
+        for (int i = 0; i < 3; i++)
+        {
+            VertexData v = triangle[i];
+            if (WithinBounds(v.position))
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool WithinBounds(Vector2 position)
+    {
+        if (position.x > max_X)
+            return false;
+        else if (position.x < min_X)
+            return false;
+
+        else if (position.y > max_Y)
+            return false;
+        else if (position.y < min_Y)
+            return false;
+
+        else
+            return true;
     }
 
     public bool Intersect(Triangle triangle)

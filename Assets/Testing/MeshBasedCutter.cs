@@ -56,6 +56,9 @@ public class Edge
     public VertexData a;
     public VertexData b;
 
+    public Vector3 Normal => a.normal;
+
+    public Vector2 UV => (a.uv + b.uv) / 2;
     public Edge(VertexData a, VertexData b)
     {
         this.a = a;

@@ -376,6 +376,9 @@ public static class EarClipper
     private static bool IsPointInTriangle(Vector3 pt, Point vertex)
         => IsPointInTriangle(pt, vertex.lastPoint.Position, vertex.Position, vertex.nextPoint.Position);
 
+    public static bool IsPointInTriangle(Point point, Triangle triangle)
+        => IsPointInTriangle(point.Position, triangle.vertexA.position, triangle.vertexB.position, triangle.vertexC.position);
+
     public static bool IsPointInTriangle(Vector3 pt, Vector3 triangle_1, Vector3 triangle_2, Vector3 triangle_3)
     {
         float d1, d2, d3;
@@ -434,18 +437,4 @@ public class Line
     }
 }
 
-public class Intersection
-{
-    public readonly Vector3 position;
-    /// <summary>
-    /// source vertex before the intersection
-    /// </summary>
-    public readonly Point vertex;
 
-    public Intersection(Vector3 position, Point sourceVertex)
-    {
-        this.position = position;
-        this.vertex = sourceVertex;
-    }
-
-}

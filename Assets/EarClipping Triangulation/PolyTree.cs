@@ -21,6 +21,13 @@ public class PolyTree
         return copy;
     }
 
+    public void AddChild(Polygon child)
+    {
+        PolyTree childTree = new PolyTree();
+        childTree.shape = child;
+        AddChild(childTree);
+    }
+
     public void AddChild(PolyTree child)
     {
         if (child.shape.direction == shape.direction)

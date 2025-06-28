@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public static class Utilities
@@ -87,6 +88,66 @@ public static class Utilities
                 sinTheta * (vectorToRotate.x - centerPoint.x) +
                 cosTheta * (vectorToRotate.y - centerPoint.y) + centerPoint.y
         };
+    }
+
+    public static Polygon CreatePolygon(List<Triangle> triangles, out List<Edge> edgesBetweenFaces)
+    {
+        // get all none repeated edges
+        List<Edge> edges = new List<Edge>();
+        List<Edge> multiNormalEdges = new List<Edge>();
+        foreach (var triangle in triangles)
+        {
+
+            for (int i = 0; i < 3; i++)
+            {
+                Edge edge = new Edge(triangle[i], triangle[(i + 1) % 3]);
+
+                if (edges.Contains(edge))
+                {
+                    Edge oldEdge = edges[edges.IndexOf(edge)];
+                    edges.Remove(edge);
+
+                    if (oldEdge.Normal != edge.Normal)
+                    {
+                        multiNormalEdges.Add(edge);
+                        multiNormalEdges.Add(oldEdge);
+                    }
+                }
+                else
+                    edges.Add(edge);
+            }
+        }
+        edgesBetweenFaces = multiNormalEdges;
+
+        Edge currentEdge = edges.Find(e => !multiNormalEdges.Contains(e));
+
+        VertexData startVertex = currentEdge.a;
+        VertexData currentVertex = startVertex;
+        List<VertexData> vertices = new List<VertexData>();
+        for (int saftyCounter = 0; saftyCounter <= 1000; saftyCounter++)
+        {
+            vertices.Add(currentVertex);
+            currentEdge = edges.Find(e => e.Contain(currentVertex));
+            edges.Remove(currentEdge);
+
+            if (currentEdge.Normal != currentVertex.normal)
+            {
+                // add 2nd vertex on the same position with different normal
+                vertices.Add(currentEdge.a);
+            }
+
+            currentVertex = currentEdge.b;
+
+            if (currentVertex.position == startVertex.position)
+                break;
+
+            if (saftyCounter == 1000)
+            {
+                Debug.Log("too much trys");
+            }
+        }
+
+        return new Polygon(vertices);
     }
 }
 
