@@ -376,21 +376,61 @@ namespace SealTheSlice
             matrixTranslator.MoveAround(mesh);
             Polygon cut = cutter.ToPolygon();
             cut.Refresh();
-            Polygon hole = cut.Copy();
 
-            List<Triangle> trianglesSurroundingHole = new List<Triangle>();
+            List<Triangle> trianglesSurroundingHole_front = new List<Triangle>();
+            List<Triangle> trianglesSurroundingHole_back = new List<Triangle>();
+
+
             foreach (var triangle in mesh.Triangles)
             {
-                // ignore backward ones for now
-                if (triangle.Normal.z >= 0)
-                    continue;
-
-                if (hole.IsAroundTheShape(triangle))
-                    trianglesSurroundingHole.Add(triangle);
-                else if (hole.IsInsideTheShape(triangle))
-                    trianglesSurroundingHole.Add(triangle);
+                if (cut.IsAroundTheShape(triangle) || cut.IsInsideTheShape(triangle))
+                {
+                    if (triangle.Normal.z > 0)
+                        trianglesSurroundingHole_front.Add(triangle);
+                    else if (triangle.Normal.z < 0)
+                        trianglesSurroundingHole_back.Add(triangle);
+                }
             }
 
+            Polygon frontCut = cut.Copy();
+            Polygon backCut = cut.Copy();
+            backCut.Reverse();
+            EditSide(mesh, frontCut, trianglesSurroundingHole_front);
+            EditSide(mesh, backCut, trianglesSurroundingHole_back);
+
+            VertexMesh cutsMesh = new VertexMesh();
+
+            foreach (var triangle in EarClipper.FillSimplePolygon(frontCut))
+            {
+                cutsMesh.AddTriangle(triangle);
+            }
+            foreach (var triangle in EarClipper.FillSimplePolygon(backCut))
+            {
+                cutsMesh.AddTriangle(triangle);
+            }
+
+            VertexMesh insideMesh = new VertexMesh();
+            FillTheInside(cutsMesh, cut.direction == PolygonDirection.Clockwise, cutter.GetShape(), insideMesh);
+
+            GameObject outsideObject = CloneObject(cuttable, cutter, mesh, "outside", matrixTranslator);
+            GameObject insideObjectFill = CloneObject(cuttable, cutter, insideMesh, "inside", matrixTranslator);
+            outsideObject.transform.SetParent(cuttable.transform, false);
+            insideObjectFill.transform.SetParent(cuttable.transform, false);
+
+            if (cutter.Material != null)
+            {
+                Material m = new Material(cutter.Material);
+                if (cutter.KeepInside)
+                    insideObjectFill.AddComponent<CutFillEffect>().Setup(cutter.FadeTime, m);
+            }
+
+            return new CutResult();
+
+        }
+
+
+        private static void EditSide(VertexMesh mesh, Polygon hole, List<Triangle> trianglesSurroundingHole)
+        {
             trianglesSurroundingHole.ForEach(t => mesh.RemoveTriangle(t));
 
             // raycast the hole forward into valid triangles
@@ -456,17 +496,13 @@ namespace SealTheSlice
                 polyTree.shape = new Polygon(subPolygon);
                 polyTree.AddChild(new Polygon(subHole));
 
+
                 foreach (var trianlge in EarClipper.FillPolygoneTree(polyTree))
                 {
                     mesh.AddTriangle(trianlge);
                 }
 
             }
-
-            GameObject outsideObject = CloneObject(cuttable, cutter, mesh, "outside", matrixTranslator);
-            outsideObject.transform.SetParent(cuttable.transform, false);
-            return new CutResult();
-
         }
 
         private static void AddVerticesTouchingTriangle(ref List<VertexData> vertices, Triangle triangle, ref List<Triangle> trianglesToSearch, ref List<Triangle> currentTriangles)

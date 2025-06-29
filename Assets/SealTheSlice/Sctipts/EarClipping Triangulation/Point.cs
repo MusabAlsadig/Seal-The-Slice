@@ -33,7 +33,7 @@ namespace SealTheSlice
             Vector3 side1 = lastPoint.Position - Position;
             Vector3 side2 = nextPoint.Position - Position;
 
-            float result = Vector3.SignedAngle(side2, side1, vertex.normal);
+            float result = Vector3.SignedAngle(side2, side1, Vector3.forward);
             return result;
         }
 

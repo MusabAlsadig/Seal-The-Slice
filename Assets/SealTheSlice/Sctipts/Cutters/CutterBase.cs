@@ -12,7 +12,7 @@ namespace SealTheSlice
         private Material materialForTheFiller;
         [SerializeField]
         private float fadeTime = 3;
-        [SerializeField]
+        
         private bool keepInside;
 
         public Material Material => materialForTheFiller;
@@ -58,7 +58,7 @@ namespace SealTheSlice
 
         public Polygon ToPolygon()
         {
-            var vertices = points.ConvertAll(p => new VertexData(-1, p, Vector3.zero, Vector2.zero));
+            var vertices = points.ConvertAll(p => new VertexData(-1, Vector3.Scale(p, transform.lossyScale), Vector3.zero, Vector2.zero));
             return new Polygon(vertices);
         }
 
