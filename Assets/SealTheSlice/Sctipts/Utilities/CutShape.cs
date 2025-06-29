@@ -13,12 +13,15 @@ namespace SealTheSlice
 
         public List<LimitedPlane> planes = new List<LimitedPlane>();
 
+        private Bounds bounds;
 
         public CutShape() { }
 
         public CutShape(List<Vector2> points)
         {
             this.points = points;
+            Vector2 min = Vector2.one * float.MaxValue;
+            Vector3 max = Vector2.one * float.MinValue;
             for (int i = 0; i < points.Count; i++)
             {
                 int nextIndex = i + 1 < points.Count ? i + 1 : 0;
@@ -28,7 +31,13 @@ namespace SealTheSlice
 
                 LimitedPlane plane = new LimitedPlane(currentPoint, nextPoint, PolygonDirection.CounterClockwise);
                 planes.Add(plane);
+
+                min = Vector2.Min(currentPoint, min);
+                max = Vector2.Max(currentPoint, max);
             }
+
+            bounds = new Bounds();
+            bounds.SetMinMax(min, max);
         }
 
         public bool IsInside(Triangle triangle)
@@ -49,6 +58,9 @@ namespace SealTheSlice
 
         private bool IsPointInside(Vector2 point)
         {
+            if (!bounds.Contains(point))
+                return false;
+
             var planesToCheck = planes.Where(p => p.IsWithinRange(point));
             if (planesToCheck.Count() == 0)
                 return false;

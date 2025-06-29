@@ -41,7 +41,7 @@ namespace SealTheSlice
         {
             if (target.BeenCuted)
                 return null;
-            CutResult cutResult = MeshSlicer.SeperateByCut(target, this);
+            CutResult cutResult = MeshSlicer.SeperateByCut_InsertWithEarClipper(target, this);
             target.AfterCutCleanup();
             return cutResult;
         }

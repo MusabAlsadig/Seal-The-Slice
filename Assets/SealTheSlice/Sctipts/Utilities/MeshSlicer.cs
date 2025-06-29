@@ -325,8 +325,6 @@ namespace SealTheSlice
                 float secondRatio = distance.Value(secondUVAxis) / totalDistance.Value(secondUVAxis);
                 vertex.uv.x = Mathf.Lerp(0, 1, zRatio);
                 vertex.uv.y = Mathf.Lerp(0, 1, secondRatio);
-
-                Debug.Log(vertex.uv);
             }
         }
 
@@ -384,7 +382,7 @@ namespace SealTheSlice
             foreach (var triangle in mesh.Triangles)
             {
                 // ignore backward ones for now
-                if (triangle.Normal.z <= 0)
+                if (triangle.Normal.z >= 0)
                     continue;
 
                 if (hole.IsAroundTheShape(triangle))
@@ -466,6 +464,7 @@ namespace SealTheSlice
             }
 
             GameObject outsideObject = CloneObject(cuttable, cutter, mesh, "outside", matrixTranslator);
+            outsideObject.transform.SetParent(cuttable.transform, false);
             return new CutResult();
 
         }
