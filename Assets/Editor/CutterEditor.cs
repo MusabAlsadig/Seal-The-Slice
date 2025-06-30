@@ -17,6 +17,11 @@ namespace SealTheSlice
 
         public override void OnInspectorGUI()
         {
+            if (GUILayout.Button("Reconstuct shape"))
+            {
+                EditingWindow.OpenWith(cutter);
+            }
+
             base.OnInspectorGUI();
 
             if (GUILayout.Button("Test Cut forward"))

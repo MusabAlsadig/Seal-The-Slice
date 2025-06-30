@@ -1,6 +1,6 @@
 ﻿namespace SealTheSlice
 {
-    public class CuttableSubObject : CuttableObject
+    public class SlicedObject : CuttableObject
     {
         public override CuttableRootObject Root => root;
         private CuttableRootObject root;

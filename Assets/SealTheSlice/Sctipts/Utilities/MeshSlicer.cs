@@ -101,7 +101,7 @@ namespace SealTheSlice
             if (isSeperateObject)
                 submeshObject.AddComponent<CuttableRootObject>();
             else
-                submeshObject.AddComponent<CuttableSubObject>().Setup(baseObject.Root);
+                submeshObject.AddComponent<SlicedObject>().Setup(baseObject.Root);
 
             return submeshObject;
         }
@@ -412,6 +412,9 @@ namespace SealTheSlice
             VertexMesh insideMesh = new VertexMesh();
             FillTheInside(cutsMesh, cut.direction == PolygonDirection.Clockwise, cutter.GetShape(), insideMesh);
 
+            Bounds translatedBounds = matrixTranslator.MoveAround(cuttable.OriginalBounds);
+            FixMeshUVs(insideMesh, translatedBounds);
+
             GameObject outsideObject = CloneObject(cuttable, cutter, mesh, "outside", matrixTranslator);
             GameObject insideObjectFill = CloneObject(cuttable, cutter, insideMesh, "inside", matrixTranslator);
             outsideObject.transform.SetParent(cuttable.transform, false);
@@ -420,8 +423,7 @@ namespace SealTheSlice
             if (cutter.Material != null)
             {
                 Material m = new Material(cutter.Material);
-                if (cutter.KeepInside)
-                    insideObjectFill.AddComponent<CutFillEffect>().Setup(cutter.FadeTime, m);
+                insideObjectFill.AddComponent<CutFillEffect>().Setup(cutter.FadeTime, m);
             }
 
             return new CutResult();
